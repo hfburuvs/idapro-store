@@ -189,7 +189,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                               })
                             ) : (
                               categories.map((cat) => (
-                                <a key={cat.id} href={path(`/#cat-${cat.slug}`)} onClick={(e) => { e.preventDefault(); setProductsOpen(false); const pn = location.pathname; const isHome = pn === '/' || pn === '/de' || pn === '/es' || pn === '/it' || pn === '/fr' || pn === '/us'; if (!isHome) { navigate(path(`/?cat=${cat.slug}`)); } else { setTimeout(() => { const el = document.getElementById(`cat-${cat.slug}`); if (el) el.scrollIntoView({behavior:'smooth',block:'start'}); }, 150); } }} className="flex items-center px-4 py-2.5 text-sm text-gray-700 hover:bg-orange-50 hover:text-[#FF9900] transition-colors">
+                                <a key={cat.id} href={path(`/#cat-${cat.slug}`)} onClick={(e) => { e.preventDefault(); setProductsOpen(false); sessionStorage.setItem("scrollToCategory", `cat-${cat.slug}`); navigate(path("/")); }} className="flex items-center px-4 py-2.5 text-sm text-gray-700 hover:bg-orange-50 hover:text-[#FF9900] transition-colors">
                                   <span className="w-2 h-2 rounded-full bg-[#FF9900] mr-3" />
                                   {cat.name}
                                 </a>
@@ -246,16 +246,12 @@ export default function Layout({ children }: { children: ReactNode }) {
                         {categories.map((cat) => (
                           <a
                             key={cat.id}
-                            href={`#cat-${cat.slug}`}
+                            href={path(`/#cat-${cat.slug}`)}
                             onClick={(e) => {
                               e.preventDefault();
                               setProductsOpen(false);
-                              const el = document.getElementById(`cat-${cat.slug}`);
-                              if (el) {
-                                el.scrollIntoView({ behavior: "smooth", block: "start" });
-                              } else {
-                                navigate(path(`/?cat=${cat.slug}`));
-                              }
+                              sessionStorage.setItem("scrollToCategory", `cat-${cat.slug}`);
+                              navigate(path("/"));
                             }}
                             className="flex items-center px-4 py-2.5 text-sm text-gray-700 hover:bg-orange-50 hover:text-[#FF9900] transition-colors"
                           >
@@ -528,14 +524,8 @@ export default function Layout({ children }: { children: ReactNode }) {
                       href={path(`/#cat-${cat.slug}`)}
                       onClick={(e) => {
                         e.preventDefault();
-                        const pn = location.pathname;
-                        const isHome = pn === '/' || pn === '/de' || pn === '/es' || pn === '/it' || pn === '/fr' || pn === '/us';
-                        if (!isHome) {
-                          navigate(path(`/?cat=${cat.slug}`));
-                        } else {
-                          const el = document.getElementById(`cat-${cat.slug}`);
-                          if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-                        }
+                        sessionStorage.setItem("scrollToCategory", `cat-${cat.slug}`);
+                        navigate(path("/"));
                       }}
                       className="text-sm text-gray-400 hover:text-[#FF9900] transition-colors"
                     >
