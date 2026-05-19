@@ -1,6 +1,4 @@
 {"rewrites":[
-  {"source":"/assets/:path*","destination":"/assets/:path*"},
-  {"source":"/_worker.js","destination":"/_worker.js"},
   {"source":"/admin/:path*","destination":"/index.html"},
   {"source":"/:country/:path*","destination":"/index.html"},
   {"source":"/product/:id","destination":"/index.html"},
