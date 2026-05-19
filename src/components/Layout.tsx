@@ -180,6 +180,16 @@ export default function Layout({ children }: { children: ReactNode }) {
                             {children.length > 0 ? (
                               children.map((child) => {
                                 const childLabel = navLabelMap[child.label?.toLowerCase()] || child.label;
+                                const isCatAnchor = child.link?.includes("#cat-");
+                                if (isCatAnchor) {
+                                  const catSlug = child.link.split("#cat-")[1];
+                                  return (
+                                    <a key={child.id} href={child.link} onClick={(e) => { e.preventDefault(); sessionStorage.setItem("scrollToCategory", `cat-${catSlug}`); navigate(path("/")); }} className="flex items-center px-4 py-2.5 text-sm text-gray-700 hover:bg-orange-50 hover:text-[#FF9900] transition-colors">
+                                      <span className="w-2 h-2 rounded-full bg-[#FF9900] mr-3" />
+                                      {childLabel}
+                                    </a>
+                                  );
+                                }
                                 return (
                                   <Link key={child.id} to={child.link} className="flex items-center px-4 py-2.5 text-sm text-gray-700 hover:bg-orange-50 hover:text-[#FF9900] transition-colors">
                                     <span className="w-2 h-2 rounded-full bg-[#FF9900] mr-3" />
