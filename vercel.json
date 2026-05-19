@@ -1,21 +1,12 @@
-{
-  "rewrites": [
-    { "source": "/sitemap.xml", "destination": "/index.html" },
-    { "source": "/robots.txt", "destination": "/index.html" },
-    { "source": "/product/(.*)", "destination": "/index.html" },
-    { "source": "/category/(.*)", "destination": "/index.html" },
-    { "source": "/admin/(.*)", "destination": "/index.html" },
-    { "source": "/about", "destination": "/index.html" },
-    { "source": "/contact", "destination": "/index.html" },
-    { "source": "/admin", "destination": "/index.html" },
-    { "source": "/(.*)", "destination": "/index.html" }
-  ],
-  "headers": [
-    {
-      "source": "/assets/(.*)",
-      "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
-      ]
-    }
-  ]
-}
+{"rewrites":[
+  {"source":"/assets/:path*","destination":"/assets/:path*"},
+  {"source":"/_worker.js","destination":"/_worker.js"},
+  {"source":"/admin/:path*","destination":"/index.html"},
+  {"source":"/:country/:path*","destination":"/index.html"},
+  {"source":"/product/:id","destination":"/index.html"},
+  {"source":"/category/:slug","destination":"/index.html"},
+  {"source":"/about","destination":"/index.html"},
+  {"source":"/contact","destination":"/index.html"},
+  {"source":"/sitemap.xml","destination":"/index.html"},
+  {"source":"/robots.txt","destination":"/index.html"}
+],"cleanUrls":true,"trailingSlash":false}
