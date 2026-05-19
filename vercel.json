@@ -1,1 +1,1 @@
-{"version":3,"routes":[{"src":"/(.*)","dest":"/index.html"}]}
+{"rewrites":[{"source":"/about","destination":"/"},{"source":"/contact","destination":"/"},{"source":"/admin","destination":"/"},{"source":"/admin/:path*","destination":"/"},{"source":"/de/:path*","destination":"/"},{"source":"/es/:path*","destination":"/"},{"source":"/it/:path*","destination":"/"},{"source":"/fr/:path*","destination":"/"},{"source":"/product/:id","destination":"/"},{"source":"/category/:slug","destination":"/"}]}
