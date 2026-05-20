@@ -353,6 +353,8 @@ function ProductsTab() {
 
         // Parse rows (NO brand/category creation here!)
         const newRows: Record<string, any>[] = [];
+        const errorDetails: string[] = [];
+        let failed = 0;
         for (let i = 1; i < lines.length; i++) {
           let vals: string[];
           if (isMarkdownTable) {
@@ -370,7 +372,39 @@ function ProductsTab() {
             else row[h] = rawVal;
           });
           if (!row.title) continue;
+
+          // === Row-level required field validation ===
+          const rowErrors: string[] = [];
+          const rowNum = i + 1;
+          if (!row.title?.trim()) rowErrors.push(`Row ${rowNum}: title is required`);
+          if (!row.price || parseFloat(String(row.price)) <= 0) rowErrors.push(`Row ${rowNum}: price must be > 0`);
+          if (!row.amazon_link?.trim()) rowErrors.push(`Row ${rowNum}: amazon_link is required`);
+          if (!row.country?.trim()) rowErrors.push(`Row ${rowNum}: country is required (us/de/es/it/fr)`);
+          else {
+            const validCountries = ["us", "de", "es", "it", "fr"];
+            if (!validCountries.includes(row.country.trim().toLowerCase())) rowErrors.push(`Row ${rowNum}: country "${row.country}" is invalid. Must be one of: us, de, es, it, fr`);
+          }
+          // Must have category identification (by ID or name+slug)
+          const hasCatId = row.category_id && parseInt(String(row.category_id)) > 0;
+          const hasCatName = row.category_name?.trim() && row.category_slug?.trim();
+          if (!hasCatId && !hasCatName) rowErrors.push(`Row ${rowNum}: requires category_id OR (category_name + category_slug)`);
+          // Must have brand identification (by ID or name+slug)
+          const hasBrandId = row.brand_id && parseInt(String(row.brand_id)) > 0;
+          const hasBrandName = row.brand_name?.trim() && row.brand_slug?.trim();
+          if (!hasBrandId && !hasBrandName) rowErrors.push(`Row ${rowNum}: requires brand_id OR (brand_name + brand_slug)`);
+
+          if (rowErrors.length > 0) {
+            errorDetails.push(...rowErrors);
+            failed++;
+            continue;
+          }
+
           newRows.push(row);
+        }
+
+        if (errorDetails.length > 0) {
+          setError(`Import validation failed (${failed} rows):\n${errorDetails.slice(0, 8).join("\n")}${errorDetails.length > 8 ? `\n(+${errorDetails.length - 8} more errors)` : ""}`);
+          if (newRows.length === 0) return; // No valid rows to import
         }
 
         if (newRows.length === 0) { setError("No valid data rows found"); return; }
@@ -509,18 +543,63 @@ function ProductsTab() {
       const dbCols = ["title", "image_url", "price", "amazon_link", "description", "category_id", "brand_id", "rating", "reviews", "country"];
       const failedRows: any[] = [];
 
+      // Prepare fallback IDs (use first available if lookup fails)
+      const fallbackCategoryId = liveCats.length > 0 ? liveCats[0].id : null;
+      const fallbackBrandId = liveBrands.length > 0 ? liveBrands[0].id : null;
+
       for (let i = 0; i < allRows.length; i++) {
         const row = allRows[i];
         const userAction = actionMap.get(row.title?.toLowerCase());
         if (userAction === "skip") { skipped++; continue; }
 
-        // Resolve category_id from name/slug
-        if (row.category_name && row.category_slug) {
-          row.category_id = catSlugMap.get(row.category_slug) || catNameMap.get(row.category_name.toLowerCase()) || row.category_id;
+        // Resolve category_id: explicit ID > lookup by slug > lookup by name > fallback
+        let resolvedCatId: number | null = null;
+        if (row.category_id && parseInt(String(row.category_id)) > 0) {
+          const exists = liveCats.some((c: any) => c.id === parseInt(String(row.category_id)));
+          if (exists) resolvedCatId = parseInt(String(row.category_id));
         }
-        // Resolve brand_id from name/slug
-        if (row.brand_name && row.brand_slug) {
-          row.brand_id = brandSlugMap.get(row.brand_slug) || brandNameMap.get(row.brand_name.toLowerCase()) || row.brand_id;
+        if (!resolvedCatId && row.category_slug) {
+          resolvedCatId = catSlugMap.get(row.category_slug) || null;
+        }
+        if (!resolvedCatId && row.category_name) {
+          resolvedCatId = catNameMap.get(row.category_name.toLowerCase()) || null;
+        }
+        if (!resolvedCatId && fallbackCategoryId) {
+          resolvedCatId = fallbackCategoryId;
+          console.warn(`[IMPORT] Row ${i}: using fallback category_id=${fallbackCategoryId} for "${row.title?.substring(0,40)}"`);
+        }
+        row.category_id = resolvedCatId;
+
+        // Resolve brand_id: explicit ID > lookup by slug > lookup by name > fallback
+        let resolvedBrandId: number | null = null;
+        if (row.brand_id && parseInt(String(row.brand_id)) > 0) {
+          const exists = liveBrands.some((b: any) => b.id === parseInt(String(row.brand_id)));
+          if (exists) resolvedBrandId = parseInt(String(row.brand_id));
+        }
+        if (!resolvedBrandId && row.brand_slug) {
+          resolvedBrandId = brandSlugMap.get(row.brand_slug) || null;
+        }
+        if (!resolvedBrandId && row.brand_name) {
+          resolvedBrandId = brandNameMap.get(row.brand_name.toLowerCase()) || null;
+        }
+        if (!resolvedBrandId && fallbackBrandId) {
+          resolvedBrandId = fallbackBrandId;
+          console.warn(`[IMPORT] Row ${i}: using fallback brand_id=${fallbackBrandId} for "${row.title?.substring(0,40)}"`);
+        }
+        row.brand_id = resolvedBrandId;
+
+        // Skip if still no valid category/brand after all fallbacks
+        if (!row.category_id) {
+          failed++;
+          errorDetails.push(`Row ${i + 1} "${row.title?.substring(0, 40)}": no valid category_id (and no fallback available)`);
+          failedRows.push({title: row.title, err: "No valid category"});
+          continue;
+        }
+        if (!row.brand_id) {
+          failed++;
+          errorDetails.push(`Row ${i + 1} "${row.title?.substring(0, 40)}": no valid brand_id (and no fallback available)`);
+          failedRows.push({title: row.title, err: "No valid brand"});
+          continue;
         }
 
         // Build clean row
@@ -532,7 +611,9 @@ function ProductsTab() {
           } else if (c === "reviews") {
             cleanRow[c] = row[c] && row[c].toString().trim() ? parseInt(row[c]) : generateReviews(seed);
           } else if (c === "country") {
-            cleanRow[c] = row[c] && row[c].toString().trim() ? row[c].toString().trim() : "us";
+            cleanRow[c] = (row[c] || "").toString().trim().toLowerCase();
+          } else if (c === "category_id" || c === "brand_id") {
+            cleanRow[c] = row[c]; // Already resolved above
           } else if (row[c] !== undefined && row[c] !== null && row[c] !== "") {
             cleanRow[c] = row[c];
           }
