@@ -1,6 +1,6 @@
 import { Link, useLocation, useNavigate } from "react-router";
 import { useCountry } from "@/hooks/useCountry";
-import { countryConfig, type CountryCode, VALID_COUNTRIES } from "@/lib/i18n";
+import { countryConfig, type CountryCode } from "@/lib/i18n";
 import { type ReactNode, useState, useEffect } from "react";
 import {
   ShoppingBag,
@@ -15,6 +15,12 @@ import {
 } from "lucide-react";
 import { Helmet } from "react-helmet-async";
 import { supabase } from "@/lib/supabase";
+
+function isHomePath(pathname: string): boolean {
+  if (pathname === '/') return true;
+  // Match /xx or /xx/ where xx is any 2-letter country code
+  return /^\/[a-z]{2}\/?$/i.test(pathname);
+}
 
 interface Category {
   id: number;
@@ -44,6 +50,8 @@ export default function Layout({ children }: { children: ReactNode }) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [navItems, setNavItems] = useState<NavItem[]>([]);
   const [settingsMap, setSettingsMap] = useState<Record<string, string>>({});
+  const [seoMap, setSeoMap] = useState<Record<string, string>>({});
+  const [dbCountries, setDbCountries] = useState<any[]>([]);
   const [analyticsCode, setAnalyticsCode] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
@@ -64,11 +72,13 @@ export default function Layout({ children }: { children: ReactNode }) {
           .eq("country", country);
         const activeCatIds = new Set((productCats || []).map((p: any) => p.category_id));
 
-        const [{ data: cats }, { data: settings }, { data: navs }] = await Promise.all([
+        const [{ data: cats }, { data: settings }, { data: navs }, { data: countriesData }] = await Promise.all([
           supabase.from("categories").select("*").order("sort_order", { ascending: true }),
           supabase.from("settings").select("*"),
           supabase.from("navigation").select("*").eq("is_active", 1).order("sort_order", { ascending: true }),
+          supabase.from("countries").select("*").eq("is_active", true).order("sort_order", { ascending: true }),
         ]);
+        setDbCountries(countriesData || []);
         // Only show categories that have products for this country
         const filteredCats = (cats || []).filter((c: Category) => activeCatIds.has(c.id));
         setCategories(filteredCats as Category[]);
@@ -80,13 +90,17 @@ export default function Layout({ children }: { children: ReactNode }) {
         });
         setSettingsMap(map);
 
-        const { data: analytics } = await supabase
-          .from("analytics")
-          .select("code")
-          .eq("is_active", 1);
+        const [{ data: analytics }, { data: seoSettings }] = await Promise.all([
+          supabase.from("analytics").select("code").eq("is_active", 1),
+          supabase.from("seo_settings").select("*"),
+        ]);
         if (analytics && analytics.length > 0) {
           setAnalyticsCode(analytics.map((a) => a.code).join("\n"));
         }
+        // Load SEO settings into seoMap
+        const seo: Record<string, string> = {};
+        (seoSettings || []).forEach((s: any) => { seo[s.key] = s.value; });
+        setSeoMap(seo);
       } catch (err: any) {
         console.error("[Layout] Failed to load data:", err);
         // Set empty defaults to avoid undefined state
@@ -98,12 +112,15 @@ export default function Layout({ children }: { children: ReactNode }) {
     loadData();
   }, [country]);
 
-  const siteTitle = settingsMap["siteTitle"] || "iDaPro";
-  const contactEmail = settingsMap["contactEmail"] || "iddadirect@126.com";
+  const siteTitle = settingsMap["siteTitle"] || "ulbter";
+  const contactEmail = settingsMap["contactEmail"] || "";
+  // SEO: prioritize seo_settings table, fallback to settings table, then defaults
   const metaKeywords =
+    seoMap["metaKeywords"] ||
     settingsMap["metaKeywords"] ||
     "screen protector, tempered glass, camera accessories, watch accessories";
   const metaDescription =
+    seoMap["metaDescription"] ||
     settingsMap["metaDescription"] ||
     "Premium screen protectors and accessories for cameras and smartwatches.";
 
@@ -184,7 +201,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                                 if (isCatAnchor) {
                                   const catSlug = child.link.split("#cat-")[1];
                                   return (
-                                    <a key={child.id} href={child.link} onClick={(e) => { e.preventDefault(); sessionStorage.setItem("scrollToCategory", `cat-${catSlug}`); navigate(path("/")); }} className="flex items-center px-4 py-2.5 text-sm text-gray-700 hover:bg-orange-50 hover:text-[#FF9900] transition-colors">
+                                    <a key={child.id} href={child.link} onClick={(e) => { e.preventDefault(); if (isHomePath(location.pathname)) { setTimeout(() => { const el = document.getElementById(`cat-${catSlug}`); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 100); } else { sessionStorage.setItem("scrollToCategory", `cat-${catSlug}`); navigate(path("/")); } }} className="flex items-center px-4 py-2.5 text-sm text-gray-700 hover:bg-orange-50 hover:text-[#FF9900] transition-colors">
                                       <span className="w-2 h-2 rounded-full bg-[#FF9900] mr-3" />
                                       {childLabel}
                                     </a>
@@ -199,7 +216,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                               })
                             ) : (
                               categories.map((cat) => (
-                                <a key={cat.id} href={path(`/#cat-${cat.slug}`)} onClick={(e) => { e.preventDefault(); setProductsOpen(false); sessionStorage.setItem("scrollToCategory", `cat-${cat.slug}`); navigate(path("/")); }} className="flex items-center px-4 py-2.5 text-sm text-gray-700 hover:bg-orange-50 hover:text-[#FF9900] transition-colors">
+                                <a key={cat.id} href={path(`/#cat-${cat.slug}`)} onClick={(e) => { e.preventDefault(); setProductsOpen(false); if (isHomePath(location.pathname)) { setTimeout(() => { const el = document.getElementById(`cat-${cat.slug}`); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 100); } else { sessionStorage.setItem("scrollToCategory", `cat-${cat.slug}`); navigate(path("/")); } }} className="flex items-center px-4 py-2.5 text-sm text-gray-700 hover:bg-orange-50 hover:text-[#FF9900] transition-colors">
                                   <span className="w-2 h-2 rounded-full bg-[#FF9900] mr-3" />
                                   {cat.name}
                                 </a>
@@ -260,8 +277,13 @@ export default function Layout({ children }: { children: ReactNode }) {
                             onClick={(e) => {
                               e.preventDefault();
                               setProductsOpen(false);
-                              sessionStorage.setItem("scrollToCategory", `cat-${cat.slug}`);
-                              navigate(path("/"));
+                              const pn = location.pathname;
+                              if (isHomePath(pn)) {
+                                setTimeout(() => { const el = document.getElementById(`cat-${cat.slug}`); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 100);
+                              } else {
+                                sessionStorage.setItem("scrollToCategory", `cat-${cat.slug}`);
+                                navigate(path("/"));
+                              }
                             }}
                             className="flex items-center px-4 py-2.5 text-sm text-gray-700 hover:bg-orange-50 hover:text-[#FF9900] transition-colors"
                           >
@@ -305,22 +327,26 @@ export default function Layout({ children }: { children: ReactNode }) {
               {/* Country Switcher */}
               <div className="relative group">
                 <button className="flex items-center gap-1 text-sm font-medium px-2 py-1.5 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors">
-                  <span>{countryConfig[country as CountryCode]?.flag ?? "🇺🇸"}</span>
+                  <span>{dbCountries.find((c: any) => c.code === country)?.flag || countryConfig[country]?.flag || "🌍"}</span>
+                  <span className="uppercase text-xs">{country}</span>
                   <ChevronDown className="w-3 h-3" />
                 </button>
-                <div className="absolute top-full right-0 mt-1 w-40 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50 hidden group-hover:block">
-                  {VALID_COUNTRIES.map((cc) => (
+                <div className="absolute top-full right-0 mt-1 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50 hidden group-hover:block">
+                  {(dbCountries.length > 0 ? dbCountries : []).map((c: any) => (
                     <button
-                      key={cc}
-                      onClick={() => switchCountry(cc as CountryCode)}
+                      key={c.code}
+                      onClick={() => switchCountry(c.code as CountryCode)}
                       className={`w-full flex items-center gap-2 px-4 py-2 text-sm transition-colors ${
-                        country === cc ? "text-[#FF9900] bg-orange-50 font-medium" : "text-gray-700 hover:bg-orange-50 hover:text-[#FF9900]"
+                        country === c.code ? "text-[#FF9900] bg-orange-50 font-medium" : "text-gray-700 hover:bg-orange-50 hover:text-[#FF9900]"
                       }`}
                     >
-                      <span>{countryConfig[cc as CountryCode].flag}</span>
-                      <span>{countryConfig[cc as CountryCode].name}</span>
+                      <span>{c.flag || "🌍"}</span>
+                      <span>{c.name || c.code.toUpperCase()}</span>
                     </button>
                   ))}
+                  {dbCountries.length === 0 && (
+                    <p className="px-4 py-2 text-sm text-gray-400 text-center">No active countries</p>
+                  )}
                 </div>
               </div>
 
@@ -534,8 +560,13 @@ export default function Layout({ children }: { children: ReactNode }) {
                       href={path(`/#cat-${cat.slug}`)}
                       onClick={(e) => {
                         e.preventDefault();
-                        sessionStorage.setItem("scrollToCategory", `cat-${cat.slug}`);
-                        navigate(path("/"));
+                        const pn = location.pathname;
+                        if (isHomePath(pn)) {
+                          setTimeout(() => { const el = document.getElementById(`cat-${cat.slug}`); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 100);
+                        } else {
+                          sessionStorage.setItem("scrollToCategory", `cat-${cat.slug}`);
+                          navigate(path("/"));
+                        }
                       }}
                       className="text-sm text-gray-400 hover:text-[#FF9900] transition-colors"
                     >
