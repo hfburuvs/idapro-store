@@ -384,14 +384,14 @@ function ProductsTab() {
             const validCountries = ["us", "de", "es", "it", "fr"];
             if (!validCountries.includes(row.country.trim().toLowerCase())) rowErrors.push(`Row ${rowNum}: country "${row.country}" is invalid. Must be one of: us, de, es, it, fr`);
           }
-          // Must have category identification (by ID or name+slug)
+          // Must have category identification (by ID or name - slug auto-generated from name if missing)
           const hasCatId = row.category_id && parseInt(String(row.category_id)) > 0;
-          const hasCatName = row.category_name?.trim() && row.category_slug?.trim();
-          if (!hasCatId && !hasCatName) rowErrors.push(`Row ${rowNum}: requires category_id OR (category_name + category_slug)`);
-          // Must have brand identification (by ID or name+slug)
+          const hasCatName = row.category_name?.trim();
+          if (!hasCatId && !hasCatName) rowErrors.push(`Row ${rowNum}: requires category_id OR category_name (slug will be auto-generated from name)`);
+          // Must have brand identification (by ID or name - slug auto-generated from name if missing)
           const hasBrandId = row.brand_id && parseInt(String(row.brand_id)) > 0;
-          const hasBrandName = row.brand_name?.trim() && row.brand_slug?.trim();
-          if (!hasBrandId && !hasBrandName) rowErrors.push(`Row ${rowNum}: requires brand_id OR (brand_name + brand_slug)`);
+          const hasBrandName = row.brand_name?.trim();
+          if (!hasBrandId && !hasBrandName) rowErrors.push(`Row ${rowNum}: requires brand_id OR brand_name (slug will be auto-generated from name)`);
 
           if (rowErrors.length > 0) {
             errorDetails.push(...rowErrors);
