@@ -1,1 +1,13 @@
-{"rewrites":[{"source":"/about","destination":"/"},{"source":"/contact","destination":"/"},{"source":"/admin","destination":"/"},{"source":"/admin/:path*","destination":"/"},{"source":"/de","destination":"/"},{"source":"/de/","destination":"/"},{"source":"/de/:path*","destination":"/"},{"source":"/es","destination":"/"},{"source":"/es/","destination":"/"},{"source":"/es/:path*","destination":"/"},{"source":"/it","destination":"/"},{"source":"/it/","destination":"/"},{"source":"/it/:path*","destination":"/"},{"source":"/fr","destination":"/"},{"source":"/fr/","destination":"/"},{"source":"/fr/:path*","destination":"/"},{"source":"/product/:id","destination":"/"},{"source":"/category/:slug","destination":"/"}]}
+{
+  "rewrites": [
+    {"source": "/about", "destination": "/"},
+    {"source": "/contact", "destination": "/"},
+    {"source": "/admin", "destination": "/"},
+    {"source": "/admin/:path*", "destination": "/"},
+    {"source": "/:country([a-z]{2})", "destination": "/"},
+    {"source": "/:country([a-z]{2})/", "destination": "/"},
+    {"source": "/:country([a-z]{2})/:path*", "destination": "/"},
+    {"source": "/product/:id", "destination": "/"},
+    {"source": "/category/:slug", "destination": "/"}
+  ]
+}
