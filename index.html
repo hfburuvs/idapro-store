@@ -9,9 +9,63 @@
     window.__SUPABASE_KEY__ = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2cmN6Z3BneHFrcmxubWRxcGxkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg4OTExODQsImV4cCI6MjA5NDQ2NzE4NH0.NUXRVpGNenO_5AIVdG6qz4M649dbdwGW3H0ngi9kl9Q';
     window.__ADMIN_PASS__ = 'iDaPro2026';
   </script>
+  <style>
+    /* Fix flag emoji display - show uppercase code instead */
+    .country-flag-text { font-family: 'Segoe UI', system-ui, sans-serif; font-weight: 600; }
+    /* Hide emoji characters in country dropdown, show clean text */
+    button span:first-child { font-style: normal; }
+  </style>
 </head>
 <body>
   <div id="root"></div>
   <script type="module" src="/src/main.tsx"></script>
+  <script>
+    // Import button anti-double-click protection
+    (function() {
+      let importLocked = false;
+      document.addEventListener('click', function(e) {
+        const btn = e.target.closest('button');
+        if (!btn) return;
+        const text = btn.textContent.trim();
+        // Detect Confirm Import button
+        if (text === 'Confirm Import' && !importLocked) {
+          importLocked = true;
+          btn.disabled = true;
+          btn.innerHTML = '<svg class="spin" width="14" height="14" viewBox="0 0 24 24" style="animation:spin 1s linear infinite;display:inline-block;vertical-align:middle;margin-right:6px"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" fill="none" stroke-dasharray="60" stroke-dashoffset="20"/></svg>Importing...';
+          btn.style.opacity = '0.7';
+          // Also disable Cancel button
+          const cancelBtn = btn.parentElement.querySelector('button:not([disabled])');
+          if (cancelBtn && cancelBtn.textContent.trim() === 'Cancel') {
+            cancelBtn.disabled = true;
+            cancelBtn.style.opacity = '0.5';
+          }
+          setTimeout(function() { importLocked = false; }, 30000);
+        }
+      });
+      document.head.insertAdjacentHTML('beforeend', '<style>@keyframes spin{to{transform:rotate(360deg)}}</style>');
+    })();
+    // Flag emoji fix: replace emoji with uppercase text in country dropdown
+    (function() {
+      const observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+          mutation.addedNodes.forEach(function(node) {
+            if (node.nodeType === 1) {
+              // Fix country dropdown items showing emoji as text
+              const items = node.querySelectorAll ? node.querySelectorAll('button[class*="group-hover"] span, div[class*="absolute"] button span') : [];
+              items.forEach(function(span) {
+                const text = span.textContent.trim();
+                if (text.length === 2 && /^[a-zA-Z]{2}$/.test(text)) {
+                  // This is a country code displayed as text (emoji fallback)
+                  span.style.fontWeight = '600';
+                  span.style.fontSize = '0.85em';
+                }
+              });
+            }
+          });
+        });
+      });
+      observer.observe(document.body, { childList: true, subtree: true });
+    })();
+  </script>
 </body>
 </html>
