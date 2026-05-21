@@ -1,0 +1,56 @@
+export const config = {
+  runtime: 'edge',
+};
+
+export default async function handler(req: Request) {
+  const url = new URL(req.url);
+  const imageUrl = url.searchParams.get('url');
+
+  if (!imageUrl) {
+    return new Response(JSON.stringify({ error: 'Missing url parameter' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  // Only proxy .gif files from amazon
+  const lowerUrl = imageUrl.toLowerCase();
+  if (!lowerUrl.endsWith('.gif') && !lowerUrl.includes('amzcaptain')) {
+    return new Response(JSON.stringify({ error: 'Only .gif proxy is supported' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  try {
+    const response = await fetch(imageUrl, {
+      headers: {
+        'Referer': 'https://www.amazon.com',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      },
+    });
+
+    if (!response.ok) {
+      return new Response(JSON.stringify({ error: `Upstream error: ${response.status}` }), {
+        status: response.status,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    const contentType = response.headers.get('content-type') || 'image/gif';
+    const buffer = await response.arrayBuffer();
+
+    return new Response(buffer, {
+      status: 200,
+      headers: {
+        'Content-Type': contentType,
+        'Cache-Control': 'public, max-age=86400',
+      },
+    });
+  } catch (err: any) {
+    return new Response(JSON.stringify({ error: err.message }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+}
