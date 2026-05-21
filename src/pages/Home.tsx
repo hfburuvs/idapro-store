@@ -399,7 +399,7 @@ function ProductCard({ product }: { product: Product }) {
       <Link to={path(`/product/${product.id}`)} className="block" aria-label={`View details: ${product.title}`}>
         <div className="aspect-square bg-gray-50 flex items-center justify-center overflow-hidden">
           <img
-            src={product.image_url}
+            src={product.image_url?.toLowerCase().endsWith('.gif') ? `/api/proxy-image?url=${encodeURIComponent(product.image_url)}` : product.image_url}
             alt={product.title}
             className="w-full h-full object-contain p-4"
             loading="lazy"
