@@ -201,6 +201,12 @@ function ProductsTab() {
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [countryFilter, setCountryFilter] = useState<string>("");
 
+  const getCurrencySymbol = (countryCode?: string) => {
+    if (!countryCode) return "$";
+    const c = countries.find((c: any) => c.code?.toLowerCase() === countryCode.toLowerCase());
+    return c?.currency_symbol || "$";
+  };
+
   async function loadData() {
     setLoading(true); setError("");
     try {
@@ -961,7 +967,7 @@ function ProductsTab() {
                       <td className="px-4 py-2"><img src={p.image_url} alt="" className="w-10 h-10 rounded object-cover" /></td>
                       <td className="px-4 py-2 font-medium text-gray-900 max-w-[150px] truncate">{p.title}</td>
                       <td className="px-4 py-2 text-xs text-gray-500">{cat?.name || "-"} / {brand?.name || "-"}</td>
-                      <td className="px-4 py-2">${p.price}</td>
+                      <td className="px-4 py-2">{getCurrencySymbol(p.country)}{p.price}</td>
                       <td className="px-4 py-2 text-center">
                         <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium ${p.country === "de" ? "bg-black text-white" : p.country === "es" ? "bg-red-50 text-red-700" : p.country === "it" ? "bg-green-50 text-green-700" : p.country === "fr" ? "bg-orange-50 text-blue-700" : "bg-gray-100 text-gray-700"}`}>
                           {p.country?.toUpperCase() || "US"}
