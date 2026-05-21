@@ -709,15 +709,19 @@ function ProductsTab() {
   const DuplicateModal = () => {
     if (!duplicateModal) return null;
     const [actions, setActions] = useState<Record<string, "overwrite" | "addnew" | "skip">>({});
+    const [importing, setImporting] = useState(false);
     const dupKey = (r: any) => r.amazon_link?.toLowerCase() || r.title?.toLowerCase() || "";
 
-    const handleConfirm = () => {
+    const handleConfirm = async () => {
+      if (importing) return; // Prevent double-click
+      setImporting(true);
       const dupActions = duplicateModal.rows.map((r) => ({
         title: r.title,
         action: actions[dupKey(r)] || "skip",
       }));
       // Process ALL pending rows (not just duplicates), with user's choices applied
-      processImport(pendingRows, dupActions);
+      await processImport(pendingRows, dupActions);
+      setImporting(false);
     };
 
     const asinDisplay = (url: string) => {
@@ -753,8 +757,22 @@ function ProductsTab() {
             ))}
           </div>
           <div className="flex gap-2 mt-4">
-            <button onClick={handleConfirm} className="px-4 py-2 bg-[#FF9900] text-white rounded-lg text-sm font-medium">Confirm Import</button>
-            <button onClick={() => setDuplicateModal(null)} className="px-4 py-2 bg-gray-100 rounded-lg text-sm">Cancel</button>
+            <button onClick={handleConfirm} disabled={importing} className={`px-4 py-2 text-white rounded-lg text-sm font-medium flex items-center gap-2 ${importing ? "bg-gray-400 cursor-not-allowed" : "bg-[#FF9900] hover:bg-[#E68A00]"}`}>
+              {importing ? (
+                <>
+                  <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  Importing...
+                </>
+              ) : (
+                "Confirm Import"
+              )}
+            </button>
+            <button onClick={() => { if (!importing) setDuplicateModal(null); }} disabled={importing} className={`px-4 py-2 rounded-lg text-sm ${importing ? "bg-gray-50 text-gray-400 cursor-not-allowed" : "bg-gray-100 hover:bg-gray-200"}`}>
+              Cancel
+            </button>
           </div>
         </div>
       </div>
@@ -1117,7 +1135,19 @@ function CategoriesTab() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm("Delete?")) return;
+    // Count products and brands associated with this category
+    const [{ count: productCount }, { count: brandCount }] = await Promise.all([
+      supabase.from("products").select("id", { count: "exact", head: true }).eq("category_id", id),
+      supabase.from("brands").select("id", { count: "exact", head: true }).eq("category_id", id),
+    ]);
+    const total = (productCount || 0) + (brandCount || 0);
+    if (total > 0) {
+      const msg = `This category has ${productCount || 0} product(s) and ${brandCount || 0} brand(s).\nDeleting it will CASCADE DELETE all associated items.\n\nAre you sure?`;
+      if (!confirm(msg)) return;
+      // Cascade delete: products first, then brands, then category
+      await supabase.from("products").delete().eq("category_id", id);
+      await supabase.from("brands").delete().eq("category_id", id);
+    }
     try { await supabase.from("categories").delete().eq("id", id); load(); } catch (err: any) { setError(err.message); }
   };
 
@@ -1228,7 +1258,14 @@ function BrandsTab() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm("Delete?")) return;
+    // Count products associated with this brand
+    const { count: productCount } = await supabase.from("products").select("id", { count: "exact", head: true }).eq("brand_id", id);
+    if (productCount && productCount > 0) {
+      const msg = `This brand has ${productCount} product(s).\nDeleting it will CASCADE DELETE all associated products.\n\nAre you sure?`;
+      if (!confirm(msg)) return;
+      // Cascade delete: products first, then brand
+      await supabase.from("products").delete().eq("brand_id", id);
+    }
     try { await supabase.from("brands").delete().eq("id", id); load(); } catch (err: any) { setError(err.message); }
   };
 
@@ -1762,7 +1799,7 @@ function SeoTab() {
           {savedDesc === metaDescription && metaDescription && <span className="text-xs text-green-600">Saved</span>}
         </div>
         <p className="text-xs text-gray-500">Shown in Google search results as the page description. Keep under 160 characters.</p>
-        <textarea value={metaDescription} onChange={(e) => setMetaDescription(e.target.value)} placeholder="e.g. iDaPro offers premium camera accessories including screen protectors and lens caps..." className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" rows={3} />
+        <textarea value={metaDescription} onChange={(e) => setMetaDescription(e.target.value)} placeholder="e.g. ULBTER offers premium camera accessories including screen protectors and lens caps..." className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" rows={3} />
         <div className="flex items-center justify-between">
           <span className={`text-xs ${metaDescription.length > 160 ? 'text-red-500' : 'text-gray-400'}`}>{metaDescription.length}/160 chars</span>
           <button onClick={handleSaveDescription} className="px-4 py-2 bg-[#FF9900] hover:bg-[#E68A00] text-white rounded-lg text-sm font-medium">Save</button>
