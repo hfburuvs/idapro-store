@@ -422,18 +422,20 @@ function ProductsTab() {
 
         if (dupRows.length > 0) {
           setDuplicateModal({ rows: dupRows, existingTitles: new Set(existingLinks as any) });
+          setIsImporting(false);
           return;
         }
 
         // No duplicates - proceed directly
         await processImport(newRows, []);
+        setIsImporting(false);
       } catch (err: any) {
         setError(err.message || "Import failed");
+        setIsImporting(false);
       }
     };
     reader.readAsText(file);
     e.target.value = "";
-    setIsImporting(false);
   };
 
   // Unified import: creates brands/categories THEN inserts products
@@ -667,6 +669,7 @@ function ProductsTab() {
     }
     setDuplicateModal(null);
     setPendingRows([]);
+    setIsImporting(false);
     loadData();
     setTimeout(() => setImportResult(null), 15000);
   };
