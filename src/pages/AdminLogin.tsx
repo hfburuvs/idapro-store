@@ -15,10 +15,6 @@ export default function AdminLogin() {
   const [loading, setLoading] = useState(false);
   const [dbPass, setDbPass] = useState<string | null>(null);
 
-  const fallbackPass =
-    (typeof window !== "undefined" && (window as any).__ADMIN_PASS__) ||
-    "iDaPro2024";
-
   // Load password from database on mount
   useEffect(() => {
     async function loadPassword() {
@@ -39,16 +35,19 @@ export default function AdminLogin() {
     setError("");
     setLoading(true);
 
+    if (!dbPass) {
+      setError("Admin password not set. Please go to Settings tab to set a password first.");
+      setLoading(false);
+      return;
+    }
+
     if (!password.trim()) {
       setError("Please enter password");
       setLoading(false);
       return;
     }
 
-    // Use database password if available, otherwise fallback
-    const effectivePass = dbPass || fallbackPass;
-
-    if (password === effectivePass) {
+    if (password === dbPass) {
       localStorage.setItem("adminToken", "iDaPro_admin_token_" + Date.now());
       navigate("/admin/dashboard");
     } else {
