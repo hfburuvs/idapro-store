@@ -199,6 +199,7 @@ function ProductsTab() {
   const [isImporting, setIsImporting] = useState(false);
   const [form, setForm] = useState({ title: "", image_url: "", price: "", amazon_link: "", description: "", features: "", category_id: "", brand_id: "", rating: "", reviews: "", country: "us" });
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [countryFilter, setCountryFilter] = useState<string>("");
 
   async function loadData() {
     setLoading(true); setError("");
@@ -230,7 +231,11 @@ function ProductsTab() {
     return (b.id ?? 0) - (a.id ?? 0);
   });
 
-  const filtered = sortedProducts.filter((p) => p.title.toLowerCase().includes(search.toLowerCase()));
+  const filtered = sortedProducts.filter((p) => {
+    const matchSearch = p.title.toLowerCase().includes(search.toLowerCase());
+    const matchCountry = !countryFilter || p.country?.toLowerCase() === countryFilter.toLowerCase();
+    return matchSearch && matchCountry;
+  });
 
   // Seeded random for consistent per-product rating
   const seededRandom = (seed: string) => {
@@ -831,10 +836,17 @@ function ProductsTab() {
           </button>
         </div>
       </div>
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-        <input type="text" placeholder="Search products..." value={search} onChange={(e) => setSearch(e.target.value)}
-          className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FF9900]/20 focus:border-[#FF9900]" />
+      <div className="flex gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <input type="text" placeholder="Search products..." value={search} onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FF9900]/20 focus:border-[#FF9900]" />
+        </div>
+        <select value={countryFilter} onChange={(e) => setCountryFilter(e.target.value)}
+          className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#FF9900]/20 focus:border-[#FF9900]">
+          <option value="">All Countries</option>
+          {countries.map((c) => <option key={c.code} value={c.code}>{c.flag} {c.code.toUpperCase()}</option>)}
+        </select>
       </div>
       {showForm && (
         <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-gray-100 p-4 space-y-3">
