@@ -1762,7 +1762,7 @@ function SeoTab() {
           {savedDesc === metaDescription && metaDescription && <span className="text-xs text-green-600">Saved</span>}
         </div>
         <p className="text-xs text-gray-500">Shown in Google search results as the page description. Keep under 160 characters.</p>
-        <textarea value={metaDescription} onChange={(e) => setMetaDescription(e.target.value)} placeholder="e.g. ULBTER offers premium camera accessories including screen protectors and lens caps..." className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" rows={3} />
+        <textarea value={metaDescription} onChange={(e) => setMetaDescription(e.target.value)} placeholder="e.g. iDaPro offers premium camera accessories including screen protectors and lens caps..." className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" rows={3} />
         <div className="flex items-center justify-between">
           <span className={`text-xs ${metaDescription.length > 160 ? 'text-red-500' : 'text-gray-400'}`}>{metaDescription.length}/160 chars</span>
           <button onClick={handleSaveDescription} className="px-4 py-2 bg-[#FF9900] hover:bg-[#E68A00] text-white rounded-lg text-sm font-medium">Save</button>
