@@ -196,6 +196,7 @@ function ProductsTab() {
   const [sortOrderTip, setSortOrderTip] = useState(false);
   const [importResult, setImportResult] = useState<{ added: number; skipped: number; updated: number; failed?: number } | null>(null);
   const [duplicateModal, setDuplicateModal] = useState<{ rows: any[]; existingTitles: Set<string> } | null>(null);
+  const [isImporting, setIsImporting] = useState(false);
   const [form, setForm] = useState({ title: "", image_url: "", price: "", amazon_link: "", description: "", features: "", category_id: "", brand_id: "", rating: "", reviews: "", country: "us" });
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
 
@@ -329,6 +330,7 @@ function ProductsTab() {
     const reader = new FileReader();
     reader.onload = async (ev) => {
       try {
+        setIsImporting(true);
         const text = ev.target?.result as string;
         const allLines = text.split("\n").map((l) => l.trimEnd()).filter((l) => l.trim());
         if (allLines.length < 2) { setError("File is empty"); return; }
@@ -409,21 +411,17 @@ function ProductsTab() {
 
         if (newRows.length === 0) { setError("No valid data rows found"); return; }
 
-        // STEP 1: Check duplicates by ASIN (before any brand/cat creation)
-        const asinFromUrl = (url: string) => {
-          const m = url?.match(/\/(dp|gp\/product)\/([A-Z0-9]{10})/i);
-          return m ? m[2].toUpperCase() : url?.toLowerCase();
-        };
+        // STEP 1: Check duplicates by full amazon_link (different countries share ASIN but links differ)
         const { data: existingProducts } = await supabase.from("products").select("title,amazon_link");
-        const existingAsins = new Set((existingProducts || []).map((e: any) => asinFromUrl(e.amazon_link)).filter(Boolean));
+        const existingLinks = new Set((existingProducts || []).map((e: any) => e.amazon_link?.toLowerCase()).filter(Boolean));
 
-        const dupRows = newRows.filter((r) => existingAsins.has(asinFromUrl(r.amazon_link)));
+        const dupRows = newRows.filter((r) => existingLinks.has(r.amazon_link?.toLowerCase()));
 
         // Store ALL rows as pending - brand/cat creation happens AFTER user confirms duplicates
         setPendingRows(newRows);
 
         if (dupRows.length > 0) {
-          setDuplicateModal({ rows: dupRows, existingTitles: new Set(existingAsins as any) });
+          setDuplicateModal({ rows: dupRows, existingTitles: new Set(existingLinks as any) });
           return;
         }
 
@@ -435,6 +433,7 @@ function ProductsTab() {
     };
     reader.readAsText(file);
     e.target.value = "";
+    setIsImporting(false);
   };
 
   // Unified import: creates brands/categories THEN inserts products
@@ -641,8 +640,7 @@ function ProductsTab() {
         if (i < 5) console.log(`[IMPORT] PHASE 6 - Row ${i}: title="${row.title?.substring(0,40)}" cat_id=${row.category_id} brand_id=${row.brand_id}`, cleanRow);
 
         if (userAction === "overwrite") {
-          const asin = asinFromUrl(row.amazon_link);
-          const { error: updErr } = await supabase.from("products").update(cleanRow).ilike("amazon_link", `%${asin}%`);
+          const { error: updErr } = await supabase.from("products").update(cleanRow).eq("amazon_link", row.amazon_link);
           if (updErr) { failed++; errorDetails.push(`Update "${row.title?.substring(0, 40)}": ${updErr.message}`); failedRows.push({title: row.title, err: updErr.message}); }
           else { updated++; }
           continue;
@@ -809,9 +807,18 @@ function ProductsTab() {
               </button>
             </>
           )}
-          <label className="cursor-pointer px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium text-gray-700 transition-colors flex items-center gap-1.5">
-            <Upload className="w-4 h-4" /> Import
-            <input type="file" accept=".csv" className="hidden" onChange={handleCSVImport} />
+          <label className={`cursor-pointer px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-1.5 transition-colors ${isImporting ? "bg-gray-300 text-gray-500 cursor-wait" : "bg-gray-100 hover:bg-gray-200 text-gray-700"}`}>
+            {isImporting ? (
+              <>
+                <span className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin inline-block" />
+                Importing...
+              </>
+            ) : (
+              <>
+                <Upload className="w-4 h-4" /> Import
+                <input type="file" accept=".csv" className="hidden" onChange={handleCSVImport} disabled={isImporting} />
+              </>
+            )}
           </label>
           <button onClick={handleCSVExport} className="px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium text-gray-700 transition-colors flex items-center gap-1.5">
             <Download className="w-4 h-4" /> Export
