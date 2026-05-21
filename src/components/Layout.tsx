@@ -112,7 +112,7 @@ export default function Layout({ children }: { children: ReactNode }) {
     loadData();
   }, [country]);
 
-  const siteTitle = settingsMap["siteTitle"] || "ulbter";
+  const siteTitle = settingsMap["siteTitle"] || "iDaPro";
   const contactEmail = settingsMap["contactEmail"] || "";
   // SEO: prioritize seo_settings table, fallback to settings table, then defaults
   const metaKeywords =
