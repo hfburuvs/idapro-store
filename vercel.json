@@ -1,0 +1,14 @@
+{
+  "outputDirectory": "dist",
+  "rewrites": [
+    {"source": "/about", "destination": "/"},
+    {"source": "/contact", "destination": "/"},
+    {"source": "/admin", "destination": "/"},
+    {"source": "/admin/:path*", "destination": "/"},
+    {"source": "/:country([a-z]{2})", "destination": "/"},
+    {"source": "/:country([a-z]{2})/", "destination": "/"},
+    {"source": "/:country([a-z]{2})/:path*", "destination": "/"},
+    {"source": "/product/:id", "destination": "/"},
+    {"source": "/category/:slug", "destination": "/"}
+  ]
+}
