@@ -293,8 +293,6 @@ export default function Layout({ children }: { children: ReactNode }) {
           <div>
             <h4 className="font-bold mb-3 text-base">Customer Service</h4>
             <Link to={path("/contact")} className="block py-1 text-sm" style={{ color: '#ddd' }} onMouseEnter={(e) => (e.currentTarget.style.textDecoration = 'underline')} onMouseLeave={(e) => (e.currentTarget.style.textDecoration = 'none')}>{t("contact")}</Link>
-            <span className="block py-1 text-sm cursor-default" style={{ color: '#ddd' }}>Shipping Info</span>
-            <span className="block py-1 text-sm cursor-default" style={{ color: '#ddd' }}>Returns</span>
           </div>
           <div>
             <h4 className="font-bold mb-3 text-base">Account</h4>
@@ -316,4 +314,4 @@ export default function Layout({ children }: { children: ReactNode }) {
       {analyticsCode && <div dangerouslySetInnerHTML={{ __html: analyticsCode }} />}
     </div>
   );
-}
+}                                                                                                                                                                                                                        
