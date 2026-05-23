@@ -408,10 +408,25 @@ export const translations: Record<CountryCode, Record<string, string>> = {
 };
 
 // Valid 2-letter country codes from path (us, de, es, it, fr, uk, etc.)
-const VALID_PATH_CODES = new Set(["us", "de", "es", "it", "fr"]);
+const VALID_PATH_CODES = new Set(["us", "de", "es", "it", "fr", "uk"]);
 
 export function getCountryFromPath(path: string): CountryCode {
   const segments = path.split("/").filter(Boolean);
   const first = segments[0];
   // Accept any 2-letter code as a potential country path segment
-  if (first 
+  if (first && first.length === 2 && /^[a-z]{2}$/i.test(first)) {
+    return first.toLowerCase() as CountryCode;
+  }
+  return DEFAULT_COUNTRY;
+}
+
+export function t(country: CountryCode, key: string): string {
+  const langCountry = BASE_COUNTRIES.includes(country) ? country : DEFAULT_COUNTRY;
+  return translations[langCountry]?.[key] ?? translations[DEFAULT_COUNTRY]?.[key] ?? key;
+}
+
+// Generate a path with country prefix
+export function getPath(country: CountryCode, path: string): string {
+  if (country === DEFAULT_COUNTRY) return path;
+  return `/${country}${path}`;
+}
