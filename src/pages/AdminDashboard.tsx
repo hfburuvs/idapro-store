@@ -1792,7 +1792,7 @@ function SettingsTab() {
       {/* Logo Image Upload */}
       <div className="bg-white rounded-xl border border-gray-100 p-4 space-y-4">
         <h3 className="text-lg font-semibold text-gray-900">Site Logo</h3>
-        <p className="text-xs text-gray-500">Upload a PNG with transparent background. If not uploaded, &quot;iDaPro&quot; text will be displayed. <strong>Recommended: 400×100 px</strong> (logo area height is 36px; width scales automatically. Design your logo graphic within ~100×400px bounds for best display).</p>
+        <p className="text-xs text-gray-500">Upload a <strong>PNG</strong> or <strong>SVG</strong> with transparent background. SVG is recommended (vector format, no scaling blur). If not uploaded, &quot;iDaPro&quot; text will be displayed. <strong>PNG Recommended: 400×100 px</strong>. <strong>SVG Recommended: viewBox=&quot;0 0 400 100&quot;</strong> (display height is 36px; width scales automatically).</p>
         <div className="flex items-center gap-4">
           {settings[logoImageKey] ? (
             <div className="relative">

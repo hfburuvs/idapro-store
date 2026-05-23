@@ -154,7 +154,7 @@ export default function Layout({ children }: { children: ReactNode }) {
 
           {/* Logo */}
           <Link to={path("/")} className="flex items-center flex-shrink-0 px-2 py-1 rounded-sm" style={{ border: '1px solid transparent' }} onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#fff')} onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'transparent')}>
-            {logoImage ? (
+            {logoImage && logoImage.trim().length > 10 ? (
               <img src={logoImage} alt={siteTitle} style={{ height: 36, width: 'auto' }} />
             ) : (
               <span style={{ fontSize: 24, fontWeight: 700, color: '#FF9900', letterSpacing: -0.5 }}>iDaPro</span>
