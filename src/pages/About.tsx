@@ -69,7 +69,7 @@ export default function About() {
       </section>
 
       {/* Brand Story + Video */}
-      <section className="max-w-[1500px] mx-auto px-4 sm:px-6 py-12 md:py-16">
+      <section className="max-w-[1500px] mx-auto px-3 sm:px-4 py-12 md:py-16">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
           <div>
             <h2 className="text-2xl font-bold mb-4" style={{ color: '#0F1111' }}>
@@ -147,7 +147,7 @@ export default function About() {
       </section>
 
       {/* Commitment */}
-      <section className="max-w-[1500px] mx-auto px-4 sm:px-6 py-12 md:py-16">
+      <section className="max-w-[1500px] mx-auto px-3 sm:px-4 py-12 md:py-16">
         <h2 className="text-2xl font-bold text-center mb-8" style={{ color: '#0F1111' }}>
           {c("aboutCommitment")}
         </h2>
