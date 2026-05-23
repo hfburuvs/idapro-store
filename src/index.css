@@ -320,8 +320,30 @@
     background-color: #FEF2F2;
   }
   .icon-btn:hover.icon-btn-edit {
-    color: #2563EB;
-    background-color: #EFF6FF;
+    color: var(--color-primary);
+    background-color: var(--color-bg);
+  }
+
+  /* ---- V1.5 Theme Styles ---- */
+  .nav-pill {
+    transition: all 0.2s ease;
+  }
+  .nav-pill:hover {
+    background: var(--color-bg);
+    color: var(--color-primary);
+  }
+
+  .hero-pattern {
+    background: linear-gradient(135deg, #fff7ed 0%, #ffffff 50%, #fff7ed 100%);
+  }
+
+  .btn-primary {
+    background: linear-gradient(135deg, #FF9900 0%, #ea9800 100%);
+    transition: all 0.3s ease;
+  }
+  .btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 20px -4px rgba(255,153,0,0.4);
   }
 }
 

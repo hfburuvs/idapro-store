@@ -57,6 +57,13 @@ export default function Layout({ children }: { children: ReactNode }) {
   const [searchOpen, setSearchOpen] = useState(false);
   const { country, t, path, switchCountry } = useCountry();
 
+  // Sync searchQuery with URL search param on mount and when URL changes
+  useEffect(() => {
+    const urlSearch = new URLSearchParams(location.search).get("search") || "";
+    setSearchQuery(urlSearch);
+    if (urlSearch) setSearchOpen(true);
+  }, [location.search]);
+
   // Scroll to top on route change
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "instant" });
@@ -493,55 +500,77 @@ export default function Layout({ children }: { children: ReactNode }) {
         )}
       </nav>
 
+      {/* ===== SUB-NAV: Category Quick Links (sticky) ===== */}
+      {categories.length > 0 && (
+        <div className="bg-white border-b border-gray-100 hidden md:block sticky top-16 z-40">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center gap-1 py-2 overflow-x-auto scrollbar-hide">
+              <span className="text-xs text-gray-400 font-medium mr-2 flex-shrink-0 uppercase tracking-wider">Categories</span>
+              {categories.map((cat) => (
+                <a
+                  key={cat.id}
+                  href={path(`/#cat-${cat.slug}`)}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    const pn = location.pathname;
+                    if (isHomePath(pn)) {
+                      setTimeout(() => { const el = document.getElementById(`cat-${cat.slug}`); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 100);
+                    } else {
+                      sessionStorage.setItem("scrollToCategory", `cat-${cat.slug}`);
+                      navigate(path("/"));
+                    }
+                  }}
+                  className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-[#FF9900] hover:bg-orange-50 px-3 py-1.5 rounded-full transition-colors whitespace-nowrap flex-shrink-0"
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-orange-400" />
+                  {cat.name}
+                </a>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ===== MAIN CONTENT ===== */}
       <main className="flex-1">{children}</main>
 
       {/* ===== FOOTER ===== */}
-      <footer className="bg-gray-900 text-gray-300">
+      <footer className="bg-white border-t">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             {/* Brand */}
-            <div className="md:col-span-1">
-              <div className="flex items-center space-x-2 mb-4">
-                <div className="w-7 h-7 bg-[#FF9900] rounded-md flex items-center justify-center">
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-gradient-to-br from-[#FF9900] to-[#E68A00] rounded-lg flex items-center justify-center">
                   <ShoppingBag className="w-4 h-4 text-white" />
                 </div>
-                <span className="text-lg font-bold text-white">
+                <span className="text-lg font-bold text-gray-900">
                   {siteTitle}
                 </span>
               </div>
-              <p className="text-sm text-gray-400 leading-relaxed">
-                {settingsMap["footerAbout"] || t("footerAbout")}
+              <p className="text-sm text-gray-500 leading-relaxed">
+                {settingsMap["footerAbout"] || t("footerAbout") || "Discover quality products from trusted brands. Shop with confidence."}
               </p>
             </div>
 
             {/* Quick Links */}
             <div>
-              <h3 className="text-sm font-semibold text-white mb-4">
-                {t("quickLinks")}
-              </h3>
-              <ul className="space-y-2">
+              <h4 className="font-semibold text-gray-900 mb-4">
+                {t("quickLinks") || "Quick Links"}
+              </h4>
+              <ul className="space-y-2 text-sm text-gray-500">
                 <li>
-                  <Link
-                    to={path("/")}
-                    className="text-sm text-gray-400 hover:text-[#FF9900] transition-colors"
-                  >
+                  <Link to={path("/")} className="hover:text-[#FF9900] transition-colors">
                     {t("home")}
                   </Link>
                 </li>
                 <li>
-                  <Link
-                    to={path("/about")}
-                    className="text-sm text-gray-400 hover:text-[#FF9900] transition-colors"
-                  >
+                  <Link to={path("/about")} className="hover:text-[#FF9900] transition-colors">
                     {t("about")}
                   </Link>
                 </li>
                 <li>
-                  <Link
-                    to={path("/contact")}
-                    className="text-sm text-gray-400 hover:text-[#FF9900] transition-colors"
-                  >
+                  <Link to={path("/contact")} className="hover:text-[#FF9900] transition-colors">
                     {t("contact")}
                   </Link>
                 </li>
@@ -550,10 +579,10 @@ export default function Layout({ children }: { children: ReactNode }) {
 
             {/* Categories */}
             <div>
-              <h3 className="text-sm font-semibold text-white mb-4">
-                {t("categories")}
-              </h3>
-              <ul className="space-y-2">
+              <h4 className="font-semibold text-gray-900 mb-4">
+                {t("categories") || "Categories"}
+              </h4>
+              <ul className="space-y-2 text-sm text-gray-500">
                 {categories.slice(0, 6).map((cat) => (
                   <li key={cat.id}>
                     <a
@@ -568,7 +597,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                           navigate(path("/"));
                         }
                       }}
-                      className="text-sm text-gray-400 hover:text-[#FF9900] transition-colors"
+                      className="hover:text-[#FF9900] transition-colors"
                     >
                       {cat.name}
                     </a>
@@ -577,26 +606,37 @@ export default function Layout({ children }: { children: ReactNode }) {
               </ul>
             </div>
 
-            {/* Connect + Admin */}
+            {/* Newsletter + Admin */}
             <div>
-              <h3 className="text-sm font-semibold text-white mb-4">
-                Connect
-              </h3>
-              <p className="text-sm text-gray-400 mb-3">
-                {contactEmail}
+              <h4 className="font-semibold text-gray-900 mb-4">
+                Stay Updated
+              </h4>
+              <p className="text-sm text-gray-500 mb-3">
+                Subscribe for new products and deals.
               </p>
-              <p className="text-xs text-gray-500 mb-4">
-                &copy; {new Date().getFullYear()} {siteTitle}. {t("copyright")}
-              </p>
-              {/* Admin entry - moved to footer */}
+              <div className="flex gap-2">
+                <input
+                  type="email"
+                  placeholder="Your email"
+                  className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FF9900] focus:border-transparent"
+                  readOnly
+                />
+                <button className="bg-[#FF9900] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#E68A00] transition-colors">
+                  Subscribe
+                </button>
+              </div>
+              {/* Admin entry */}
               <Link
                 to={path("/admin")}
-                className="inline-flex items-center gap-1.5 text-xs text-gray-500 hover:text-[#FF9900] transition-colors bg-gray-800 hover:bg-gray-700 px-3 py-1.5 rounded-lg"
+                className="inline-flex items-center gap-1.5 text-xs text-gray-400 hover:text-[#FF9900] transition-colors mt-4"
               >
                 <Shield className="w-3.5 h-3.5" />
                 {t("adminLogin")}
               </Link>
             </div>
+          </div>
+          <div className="border-t mt-8 pt-8 text-center text-sm text-gray-400">
+            &copy; {new Date().getFullYear()} {siteTitle}. {t("copyright") || "All rights reserved."}
           </div>
         </div>
       </footer>

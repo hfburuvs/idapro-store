@@ -6,10 +6,11 @@ import {
   Upload, Download, Trash2, Plus, Search, Pencil,
   Settings, Layers, Tag, LayoutDashboard, Image,
   Navigation, Globe, Code2, RotateCcw, Mail, Lock,
+  Video,
 } from "lucide-react";
 
 type Tab = "dashboard" | "products" | "messages" | "categories" | "brands"
-  | "countries" | "carousel" | "navigation" | "settings" | "seo" | "analytics" | "subscribers" | "reset";
+  | "countries" | "carousel" | "navigation" | "settings" | "seo" | "analytics" | "subscribers" | "video" | "reset";
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -34,6 +35,7 @@ export default function AdminDashboard() {
     { key: "brands", label: "Brands", icon: Tag },
     { key: "countries", label: "Countries", icon: Globe },
     { key: "carousel", label: "Carousel", icon: Image },
+    { key: "video", label: "Videos", icon: Video },
     { key: "navigation", label: "Navigation", icon: Navigation },
     { key: "settings", label: "Settings", icon: Settings },
     { key: "seo", label: "SEO", icon: Globe },
@@ -77,6 +79,7 @@ export default function AdminDashboard() {
             {tab === "brands" && <BrandsTab />}
             {tab === "countries" && <CountriesTab />}
             {tab === "carousel" && <CarouselTab />}
+            {tab === "video" && <VideosTab />}
             {tab === "navigation" && <NavigationTab />}
             {tab === "settings" && <SettingsTab />}
             {tab === "seo" && <SeoTab />}
@@ -189,13 +192,17 @@ function ProductsTab() {
   const [brands, setBrands] = useState<any[]>([]);
   const [countries, setCountries] = useState<any[]>([]);
   const [search, setSearch] = useState("");
+  const [countryFilter, setCountryFilter] = useState<string>("");
   const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(50);
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
   const [error, setError] = useState("");
   const [sortOrderTip, setSortOrderTip] = useState(false);
   const [importResult, setImportResult] = useState<{ added: number; skipped: number; updated: number; failed?: number } | null>(null);
   const [duplicateModal, setDuplicateModal] = useState<{ rows: any[]; existingTitles: Set<string> } | null>(null);
+  const [importingCSV, setImportingCSV] = useState(false);
   const [form, setForm] = useState({ title: "", image_url: "", price: "", amazon_link: "", description: "", features: "", category_id: "", brand_id: "", rating: "", reviews: "", country: "us" });
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
 
@@ -221,6 +228,9 @@ function ProductsTab() {
 
   useEffect(() => { loadData(); }, []);
 
+  // Reset selection and page when filter changes
+  useEffect(() => { setSelectedIds(new Set()); setPage(1); }, [countryFilter, search]);
+
   // Sort products: if sort_order exists use it, otherwise use id desc
   const sortedProducts = [...products].sort((a, b) => {
     if (a.sort_order !== undefined && b.sort_order !== undefined && a.sort_order !== b.sort_order) {
@@ -229,7 +239,16 @@ function ProductsTab() {
     return (b.id ?? 0) - (a.id ?? 0);
   });
 
-  const filtered = sortedProducts.filter((p) => p.title.toLowerCase().includes(search.toLowerCase()));
+  const filtered = sortedProducts.filter((p) => {
+    const matchSearch = p.title.toLowerCase().includes(search.toLowerCase());
+    const matchCountry = !countryFilter || p.country === countryFilter;
+    return matchSearch && matchCountry;
+  });
+
+  // Pagination
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const safePage = Math.min(page, totalPages);
+  const paginated = filtered.slice((safePage - 1) * pageSize, safePage * pageSize);
 
   // Seeded random for consistent per-product rating
   const seededRandom = (seed: string) => {
@@ -326,12 +345,15 @@ function ProductsTab() {
   const handleCSVImport = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    setImportingCSV(true);
+    setError("");
+    setImportResult(null);
     const reader = new FileReader();
     reader.onload = async (ev) => {
       try {
         const text = ev.target?.result as string;
         const allLines = text.split("\n").map((l) => l.trimEnd()).filter((l) => l.trim());
-        if (allLines.length < 2) { setError("File is empty"); return; }
+        if (allLines.length < 2) { setError("File is empty"); setImportingCSV(false); return; }
 
         // Auto-detect format
         const isMarkdownTable = allLines[0].startsWith("|");
@@ -348,6 +370,7 @@ function ProductsTab() {
         const missingRequiredCols = requiredCols.filter((c) => !headers.includes(c));
         if (missingRequiredCols.length > 0) {
           setError(`File missing required columns: ${missingRequiredCols.join(", ")}`);
+          setImportingCSV(false);
           return;
         }
 
@@ -381,8 +404,10 @@ function ProductsTab() {
           if (!row.amazon_link?.trim()) rowErrors.push(`Row ${rowNum}: amazon_link is required`);
           if (!row.country?.trim()) rowErrors.push(`Row ${rowNum}: country is required (us/de/es/it/fr)`);
           else {
-            const validCountries = ["us", "de", "es", "it", "fr"];
-            if (!validCountries.includes(row.country.trim().toLowerCase())) rowErrors.push(`Row ${rowNum}: country "${row.country}" is invalid. Must be one of: us, de, es, it, fr`);
+            const validCountryCodes = (countries || []).map((c: any) => c.code?.toLowerCase()).filter(Boolean);
+            if (validCountryCodes.length > 0 && !validCountryCodes.includes(row.country.trim().toLowerCase())) {
+              rowErrors.push(`Row ${rowNum}: country "${row.country}" is invalid. Must be one of: ${validCountryCodes.join(", " )}`);
+            }
           }
           // Must have category identification (by ID or name - slug auto-generated from name if missing)
           const hasCatId = row.category_id && parseInt(String(row.category_id)) > 0;
@@ -404,26 +429,24 @@ function ProductsTab() {
 
         if (errorDetails.length > 0) {
           setError(`Import validation failed (${failed} rows):\n${errorDetails.slice(0, 8).join("\n")}${errorDetails.length > 8 ? `\n(+${errorDetails.length - 8} more errors)` : ""}`);
-          if (newRows.length === 0) return; // No valid rows to import
+          if (newRows.length === 0) { setImportingCSV(false); return; }
         }
 
-        if (newRows.length === 0) { setError("No valid data rows found"); return; }
+        if (newRows.length === 0) { setError("No valid data rows found"); setImportingCSV(false); return; }
 
-        // STEP 1: Check duplicates by ASIN (before any brand/cat creation)
-        const asinFromUrl = (url: string) => {
-          const m = url?.match(/\/(dp|gp\/product)\/([A-Z0-9]{10})/i);
-          return m ? m[2].toUpperCase() : url?.toLowerCase();
-        };
+        // STEP 1: Check duplicates by full amazon_link (unique per product)
+        const normalizeLink = (url: string) => url?.trim().toLowerCase() || "";
         const { data: existingProducts } = await supabase.from("products").select("title,amazon_link");
-        const existingAsins = new Set((existingProducts || []).map((e: any) => asinFromUrl(e.amazon_link)).filter(Boolean));
+        const existingLinks = new Set((existingProducts || []).map((e: any) => normalizeLink(e.amazon_link)).filter(Boolean));
 
-        const dupRows = newRows.filter((r) => existingAsins.has(asinFromUrl(r.amazon_link)));
+        const dupRows = newRows.filter((r) => existingLinks.has(normalizeLink(r.amazon_link)));
 
         // Store ALL rows as pending - brand/cat creation happens AFTER user confirms duplicates
         setPendingRows(newRows);
 
         if (dupRows.length > 0) {
-          setDuplicateModal({ rows: dupRows, existingTitles: new Set(existingAsins as any) });
+          setDuplicateModal({ rows: dupRows, existingTitles: new Set(existingLinks as any) });
+          setImportingCSV(false);
           return;
         }
 
@@ -431,8 +454,11 @@ function ProductsTab() {
         await processImport(newRows, []);
       } catch (err: any) {
         setError(err.message || "Import failed");
+      } finally {
+        setImportingCSV(false);
       }
     };
+    reader.onerror = () => { setError("Failed to read file"); setImportingCSV(false); };
     reader.readAsText(file);
     e.target.value = "";
   };
@@ -809,9 +835,21 @@ function ProductsTab() {
               </button>
             </>
           )}
-          <label className="cursor-pointer px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium text-gray-700 transition-colors flex items-center gap-1.5">
-            <Upload className="w-4 h-4" /> Import
-            <input type="file" accept=".csv" className="hidden" onChange={handleCSVImport} />
+          <label className={`cursor-pointer px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5 ${importingCSV ? "bg-gray-200 text-gray-500" : "bg-gray-100 hover:bg-gray-200 text-gray-700"}`}>
+            {importingCSV ? (
+              <>
+                <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                Importing...
+              </>
+            ) : (
+              <>
+                <Upload className="w-4 h-4" /> Import
+              </>
+            )}
+            <input type="file" accept=".csv" className="hidden" onChange={handleCSVImport} disabled={importingCSV} />
           </label>
           <button onClick={handleCSVExport} className="px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium text-gray-700 transition-colors flex items-center gap-1.5">
             <Download className="w-4 h-4" /> Export
@@ -821,16 +859,42 @@ function ProductsTab() {
           </button>
         </div>
       </div>
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-        <input type="text" placeholder="Search products..." value={search} onChange={(e) => setSearch(e.target.value)}
-          className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FF9900]/20 focus:border-[#FF9900]" />
+      <div className="flex gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <input type="text" placeholder="Search products..." value={search} onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FF9900]/20 focus:border-[#FF9900]" />
+        </div>
+        <select value={countryFilter} onChange={(e) => setCountryFilter(e.target.value)}
+          className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FF9900]/20 focus:border-[#FF9900] bg-white"
+          aria-label="Filter by country">
+          <option value="">All Countries</option>
+          {countries.map((c: any) => (
+            <option key={c.code} value={c.code}>{c.flag} {c.code.toUpperCase()}</option>
+          ))}
+        </select>
       </div>
       {showForm && (
         <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-gray-100 p-4 space-y-3">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <input placeholder="Title *" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className="px-3 py-2 border border-gray-200 rounded-lg text-sm" required />
-            <input placeholder="Image URL *" value={form.image_url} onChange={(e) => setForm({ ...form, image_url: e.target.value })} className="px-3 py-2 border border-gray-200 rounded-lg text-sm" required />
+            <div className="flex gap-2">
+              <input placeholder="Image URL *" value={form.image_url} onChange={(e) => setForm({ ...form, image_url: e.target.value })} className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm" required />
+              <label className="cursor-pointer px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm text-gray-600 flex-shrink-0 flex items-center gap-1">
+                <Upload className="w-3.5 h-3.5" />
+                <input type="file" accept="image/*" className="hidden" onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  const reader = new FileReader();
+                  reader.onload = (ev) => {
+                    const result = ev.target?.result as string;
+                    if (result) setForm({ ...form, image_url: result });
+                  };
+                  reader.readAsDataURL(file);
+                  e.target.value = "";
+                }} />
+              </label>
+            </div>
             <input placeholder="Price *" type="number" step="0.01" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} className="px-3 py-2 border border-gray-200 rounded-lg text-sm" required />
             <input placeholder="Amazon Link *" value={form.amazon_link} onChange={(e) => setForm({ ...form, amazon_link: e.target.value })} className="px-3 py-2 border border-gray-200 rounded-lg text-sm" required />
             <select value={form.category_id} onChange={(e) => setForm({ ...form, category_id: e.target.value })} className="px-3 py-2 border border-gray-200 rounded-lg text-sm">
@@ -881,15 +945,20 @@ function ProductsTab() {
                   <th className="px-2 py-2 text-left w-8">
                     <input
                       type="checkbox"
-                      checked={filtered.length > 0 && filtered.every((p: any) => selectedIds.has(p.id))}
+                      checked={paginated.length > 0 && paginated.every((p: any) => selectedIds.has(p.id))}
                       onChange={(e) => {
                         if (e.target.checked) {
-                          setSelectedIds(new Set(filtered.map((p: any) => p.id)));
+                          const next = new Set(selectedIds);
+                          paginated.forEach((p: any) => next.add(p.id));
+                          setSelectedIds(next);
                         } else {
-                          setSelectedIds(new Set());
+                          const next = new Set(selectedIds);
+                          paginated.forEach((p: any) => next.delete(p.id));
+                          setSelectedIds(next);
                         }
                       }}
                       className="w-4 h-4 accent-[#FF9900]"
+                      title="Select current page only"
                     />
                   </th>
                   <th className="px-2 py-2 text-left w-8">Order</th>
@@ -903,7 +972,7 @@ function ProductsTab() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((p) => {
+                {paginated.map((p) => {
                   const cat = categories.find((c) => c.id === p.category_id);
                   const brand = brands.find((b) => b.id === p.brand_id);
                   const sameBrand = sortedProducts.filter((x) => x.brand_id === p.brand_id);
@@ -960,7 +1029,27 @@ function ProductsTab() {
               </tbody>
             </table>
           </div>
-          {filtered.length === 0 && <p className="text-center text-sm text-gray-400 py-8">No products found</p>}
+          {paginated.length === 0 && <p className="text-center text-sm text-gray-400 py-8">No products found</p>}
+          {/* Pagination */}
+          {filtered.length > 0 && (
+            <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
+              <div className="flex items-center gap-2 text-sm text-gray-500">
+                <span>{filtered.length} total</span>
+                <select value={pageSize} onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }} className="px-2 py-1 border border-gray-200 rounded text-xs bg-white">
+                  <option value={20}>20/page</option>
+                  <option value={50}>50/page</option>
+                  <option value={100}>100/page</option>
+                </select>
+              </div>
+              <div className="flex items-center gap-1">
+                <button onClick={() => setPage(1)} disabled={safePage <= 1} className="px-2 py-1 text-xs rounded hover:bg-gray-100 disabled:opacity-30">First</button>
+                <button onClick={() => setPage(safePage - 1)} disabled={safePage <= 1} className="px-2 py-1 text-xs rounded hover:bg-gray-100 disabled:opacity-30">Prev</button>
+                <span className="px-2 text-xs text-gray-600">{safePage} / {totalPages}</span>
+                <button onClick={() => setPage(safePage + 1)} disabled={safePage >= totalPages} className="px-2 py-1 text-xs rounded hover:bg-gray-100 disabled:opacity-30">Next</button>
+                <button onClick={() => setPage(totalPages)} disabled={safePage >= totalPages} className="px-2 py-1 text-xs rounded hover:bg-gray-100 disabled:opacity-30">Last</button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -1637,6 +1726,7 @@ function SettingsTab() {
     { key: "contactEmail", label: "Contact Email" },
     { key: "metaKeywords", label: "Meta Keywords" },
     { key: "metaDescription", label: "Meta Description" },
+    { key: "heroBadge", label: "Hero Badge Text" },
     { key: "heroTitle", label: "Hero Title" },
     { key: "heroSubtitle", label: "Hero Subtitle" },
     { key: "aboutTitle", label: "About Title" },
@@ -1868,6 +1958,107 @@ function AnalyticsTab() {
           </div>
         ))}
         {items.length === 0 && <p className="text-sm text-gray-400 text-center py-4">No analytics code</p>}
+      </div>
+    </div>
+  );
+}
+
+/* ============ Videos ============ */
+function VideosTab() {
+  const [items, setItems] = useState<any[]>([]);
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({ title: "", video_url: "", sort_order: "0" });
+  const [editId, setEditId] = useState<number | null>(null);
+  const [error, setError] = useState("");
+  const [adding, setAdding] = useState(false);
+
+  async function load() {
+    try {
+      const { data, error: err } = await supabase.from("videos").select("*").order("sort_order");
+      if (err) throw err;
+      setItems(data || []);
+    } catch (err: any) {
+      setError(err.message || "Failed to load");
+    }
+  }
+
+  useEffect(() => { load(); }, []);
+
+  const getYouTubeEmbedUrl = (url: string): string | null => {
+    const regExp = /^.*(youtu\.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+    const match = url.match(regExp);
+    return match && match[2].length === 11 ? `https://www.youtube.com/embed/${match[2]}` : null;
+  };
+
+  const isYouTube = (url: string) => !!getYouTubeEmbedUrl(url);
+  const isDirectVideo = (url: string) => url.match(/\.(mp4|webm|ogg)(\?.*)?$/i);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault(); setError("");
+    try {
+      const data = { title: form.title, video_url: form.video_url, sort_order: parseInt(form.sort_order) || 0 };
+      if (editId) {
+        await supabase.from("videos").update(data).eq("id", editId);
+      } else {
+        await supabase.from("videos").insert(data);
+      }
+      setShowForm(false); setEditId(null); setForm({ title: "", video_url: "", sort_order: "0" }); load();
+    } catch (err: any) {
+      setError(err.message || "Failed to save");
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!confirm("Delete this video?")) return;
+    try { await supabase.from("videos").delete().eq("id", id); load(); }
+    catch (err: any) { setError(err.message); }
+  };
+
+  return (
+    <div className="space-y-4">
+      {error && <ErrorMsg msg={error} onClose={() => setError("")} />}
+      <div className="flex justify-between items-center">
+        <h2 className="text-xl font-bold text-gray-900">Videos ({items.length})</h2>
+        <button onClick={() => { setShowForm(true); setEditId(null); setForm({ title: "", video_url: "", sort_order: "0" }); }} className="px-3 py-2 bg-[#FF9900] text-white rounded-lg text-sm font-medium flex items-center gap-1.5">
+          <Plus className="w-4 h-4" /> Add Video
+        </button>
+      </div>
+      {showForm && (
+        <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-gray-100 p-4 space-y-3">
+          <input placeholder="Title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" required />
+          <input placeholder="YouTube URL or Video URL" value={form.video_url} onChange={(e) => setForm({ ...form, video_url: e.target.value })} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" required />
+          <input placeholder="Sort Order" type="number" value={form.sort_order} onChange={(e) => setForm({ ...form, sort_order: e.target.value })} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
+          <div className="flex gap-2">
+            <button type="submit" disabled={adding} className="px-4 py-2 bg-[#FF9900] text-white rounded-lg text-sm font-medium disabled:opacity-50">
+              {adding ? "Adding..." : (editId ? "Update" : "Create")}
+            </button>
+            <button type="button" onClick={() => setShowForm(false)} className="px-3 py-2 bg-gray-100 rounded-lg text-sm">Cancel</button>
+          </div>
+        </form>
+      )}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {items.map((item) => (
+          <div key={item.id} className="bg-white rounded-xl border border-gray-100 p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <p className="font-medium text-gray-900">{item.title || "Untitled"}</p>
+              <div className="flex gap-2">
+                <button onClick={() => { setEditId(item.id); setForm({ title: item.title || "", video_url: item.video_url || "", sort_order: String(item.sort_order || 0) }); setShowForm(true); }} className="text-xs text-blue-600 hover:underline">Edit</button>
+                <button onClick={() => handleDelete(item.id)} className="text-xs text-red-400 hover:underline">Delete</button>
+              </div>
+            </div>
+            {/* Video preview */}
+            <div className="aspect-video rounded-lg overflow-hidden bg-black">
+              {isYouTube(item.video_url) ? (
+                <iframe src={getYouTubeEmbedUrl(item.video_url)!} title={item.title} className="w-full h-full" allowFullScreen />
+              ) : isDirectVideo(item.video_url) ? (
+                <video src={item.video_url} controls className="w-full h-full" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-gray-400 text-sm">Unsupported video URL</div>
+              )}
+            </div>
+          </div>
+        ))}
+        {items.length === 0 && <p className="text-sm text-gray-400 text-center py-8 col-span-2">No videos</p>}
       </div>
     </div>
   );
