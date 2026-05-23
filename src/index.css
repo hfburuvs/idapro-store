@@ -457,4 +457,5 @@
 /* ---- Selection Color ---- */
 ::selection {
   background-color: rgb(255 153 0 / 0.2);
-  color: var(--color-
+  color: var(--color-text-primary);
+}
