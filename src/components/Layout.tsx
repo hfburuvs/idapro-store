@@ -98,10 +98,19 @@ export default function Layout({ children }: { children: ReactNode }) {
 
         // Load analytics code independently (don't let other queries fail affect this)
         try {
-          const { data: analytics } = await supabase.from("analytics").select("code").eq("is_active", 1);
+          // Try with is_active filter first, fallback to all rows
+          let { data: analytics } = await supabase.from("analytics").select("code,is_active").eq("is_active", true);
+          if (!analytics || analytics.length === 0) {
+            const { data: allAnalytics } = await supabase.from("analytics").select("code,is_active");
+            analytics = (allAnalytics || []).filter((a: any) => a.is_active === true || a.is_active === 1 || a.is_active === "1");
+          }
+          console.log("[Analytics] Loaded", analytics?.length || 0, "active codes");
           if (analytics && analytics.length > 0) {
-            setAnalyticsCode(analytics.map((a: any) => a.code).join("\n"));
+            const code = analytics.map((a: any) => a.code).join("\n");
+            console.log("[Analytics] Code length:", code.length, "chars");
+            setAnalyticsCode(code);
           } else {
+            console.log("[Analytics] No active codes found");
             setAnalyticsCode("");
           }
         } catch (analyticsErr: any) {
