@@ -167,7 +167,7 @@ export default function Home() {
   return (
     <div>
       {/* Hero */}
-      <section style={{ background: 'linear-gradient(135deg, #f7f8f8 0%, #e8e8e8 50%, #f0f1f1 100%)', padding: '40px 24px' }}>
+      <section style={{ background: 'linear-gradient(135deg, #f7f8f8 0%, #e8e8e8 50%, #f0f1f1 100%)', padding: '40px 0' }}>
         <div className="max-w-[1500px] mx-auto flex flex-col lg:flex-row items-center gap-10">
           <div className="flex-1 space-y-5 text-center lg:text-left">
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold" style={{ background: '#131921', color: '#fff', letterSpacing: 0.3 }}>
@@ -185,7 +185,7 @@ export default function Home() {
               <Link to={path("/about")} className="inline-block px-7 py-3 rounded-md text-sm font-semibold bg-white" style={{ color: '#0F1111', border: '1px solid #d5d9d9' }}>{t("learnMore")}</Link>
             </div>
           </div>
-          <div className="flex-1 relative hidden lg:block max-w-[540px]">
+          <div className="flex-1 relative hidden lg:block max-w-[480px]">
             <div className="bg-white rounded-xl overflow-hidden" style={{ boxShadow: '0 8px 30px rgba(0,0,0,0.12)' }}>
               {slides.length > 0 ? (
                 <div className="relative">

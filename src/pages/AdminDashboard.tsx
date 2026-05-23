@@ -1797,7 +1797,13 @@ function SettingsTab() {
           {settings[logoImageKey] ? (
             <div className="relative">
               <img src={settings[logoImageKey]} alt="Logo preview" className="h-12 w-auto object-contain border rounded-lg p-1" />
-              <button onClick={() => { setSettings({ ...settings, [logoImageKey]: "" }); }} className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center">×</button>
+              <button onClick={async () => {
+                setSettings({ ...settings, [logoImageKey]: "" });
+                // Delete logoImage record from database entirely
+                try {
+                  await supabase.from("settings").delete().eq("key", logoImageKey);
+                } catch (e: any) { setError(e.message); }
+              }} className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center">×</button>
             </div>
           ) : (
             <div className="h-12 px-4 flex items-center justify-center border border-dashed border-gray-300 rounded-lg text-sm text-gray-400">No logo — &quot;iDaPro&quot; text will show</div>
