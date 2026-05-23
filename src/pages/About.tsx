@@ -60,7 +60,7 @@ export default function About() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <div className="inline-flex items-center gap-2 bg-orange-100 text-orange-700 px-4 py-1.5 rounded-full text-sm font-medium mb-6">
             <span className="w-2 h-2 bg-[#FF9900] rounded-full animate-pulse" />
-            {t("aboutUs") || "About Us"}
+            {t("aboutUs")}
           </div>
           <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4 leading-tight">
             {c("aboutTitle")} <span className="text-[#FF9900]">iDaPro</span>

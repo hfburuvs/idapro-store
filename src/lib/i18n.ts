@@ -89,6 +89,11 @@ export const translations: Record<CountryCode, Record<string, string>> = {
     aboutCTA: "Ready to Protect Your Devices?",
     aboutCTADesc: "Explore our collection of premium screen protectors and accessories today.",
     aboutShopNow: "Shop Now",
+    heroBadge: "New Collection 2026",
+    exploreProducts: "Explore Products",
+    learnMore: "Learn More",
+    aboutUs: "About Us",
+    topBarText: "Free shipping on orders over $50 | New arrivals weekly",
   },
   uk: {
     home: "Home",
@@ -146,6 +151,11 @@ export const translations: Record<CountryCode, Record<string, string>> = {
     aboutCTA: "Ready to Protect Your Devices?",
     aboutCTADesc: "Explore our collection of premium screen protectors and accessories today.",
     aboutShopNow: "Shop Now",
+    heroBadge: "New Collection 2026",
+    exploreProducts: "Explore Products",
+    learnMore: "Learn More",
+    aboutUs: "About Us",
+    topBarText: "Free shipping on orders over £50 | New arrivals weekly",
   },
   de: {
     home: "Startseite",
@@ -203,6 +213,11 @@ export const translations: Record<CountryCode, Record<string, string>> = {
     aboutCTA: "Bereit, Ihre Geräte zu schützen?",
     aboutCTADesc: "Entdecken Sie noch heute unsere Kollektion premium Displayschutzfolien und Zubehör.",
     aboutShopNow: "Jetzt shoppen",
+    heroBadge: "Neue Kollektion 2026",
+    exploreProducts: "Produkte entdecken",
+    learnMore: "Mehr erfahren",
+    aboutUs: "Über uns",
+    topBarText: "Kostenloser Versand ab 50 € | Neue Artikel wöchentlich",
   },
   es: {
     home: "Inicio",
@@ -260,6 +275,11 @@ export const translations: Record<CountryCode, Record<string, string>> = {
     aboutCTA: "¿Listo para proteger sus dispositivos?",
     aboutCTADesc: "Explore nuestra colección de protectores de pantalla premium y accesorios hoy mismo.",
     aboutShopNow: "Comprar ahora",
+    heroBadge: "Nueva Colección 2026",
+    exploreProducts: "Explorar Productos",
+    learnMore: "Saber más",
+    aboutUs: "Sobre nosotros",
+    topBarText: "Envío gratis en pedidos superiores a 50 € | Novedades semanales",
   },
   it: {
     home: "Home",
@@ -317,6 +337,11 @@ export const translations: Record<CountryCode, Record<string, string>> = {
     aboutCTA: "Pronto a proteggere i tuoi dispositivi?",
     aboutCTADesc: "Esplora oggi stesso la nostra collezione di proteggi schermo premium e accessori.",
     aboutShopNow: "Acquista ora",
+    heroBadge: "Nuova Collezione 2026",
+    exploreProducts: "Esplora Prodotti",
+    learnMore: "Scopri di più",
+    aboutUs: "Chi siamo",
+    topBarText: "Spedizione gratuita per ordini superiori a 50 € | Nuovi arrivi settimanali",
   },
   fr: {
     home: "Accueil",
@@ -374,6 +399,11 @@ export const translations: Record<CountryCode, Record<string, string>> = {
     aboutCTA: "Pret a proteger vos appareils?",
     aboutCTADesc: "Explorez notre collection de protecteurs d'ecran premium et d'accessoires des aujourd'hui.",
     aboutShopNow: "Acheter maintenant",
+    heroBadge: "Nouvelle Collection 2026",
+    exploreProducts: "Explorer les Produits",
+    learnMore: "En savoir plus",
+    aboutUs: "À propos",
+    topBarText: "Livraison gratuite dès 50 € | Nouveautés chaque semaine",
   },
 };
 
@@ -384,21 +414,4 @@ export function getCountryFromPath(path: string): CountryCode {
   const segments = path.split("/").filter(Boolean);
   const first = segments[0];
   // Accept any 2-letter code as a potential country path segment
-  if (first && first.length === 2 && /^[a-z]{2}$/i.test(first)) {
-    return first.toLowerCase();
-  }
-  return DEFAULT_COUNTRY;
-}
-
-export function t(country: CountryCode, key: string): string {
-  // Only 5 built-in countries have full translations;
-  // all others fall back to English (us)
-  const langCountry = BASE_COUNTRIES.includes(country) ? country : DEFAULT_COUNTRY;
-  return translations[langCountry]?.[key] ?? translations[DEFAULT_COUNTRY][key] ?? key;
-}
-
-// Generate a path with country prefix
-export function getPath(country: CountryCode, path: string): string {
-  if (country === DEFAULT_COUNTRY) return path;
-  return `/${country}${path}`;
-}
+  if (first 

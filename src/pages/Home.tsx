@@ -282,7 +282,7 @@ export default function Home() {
             <div className="flex-1 space-y-5 text-center lg:text-left">
               <div className="inline-flex items-center gap-2 bg-orange-100 text-orange-700 px-4 py-1.5 rounded-full text-sm font-medium">
                 <span className="w-2 h-2 bg-[#FF9900] rounded-full animate-pulse" />
-                {settingsMap["heroBadge"] || t("heroBadge") || "New Collection 2026"}
+                {settingsMap["heroBadge"] || t("heroBadge")}
               </div>
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight">
                 {settingsMap["heroTitle"] ? (
@@ -300,13 +300,13 @@ export default function Home() {
                   onClick={(e) => { e.preventDefault(); document.getElementById('products')?.scrollIntoView({ behavior: 'smooth' }); }}
                   className="btn-primary text-white px-6 md:px-8 py-3 rounded-full font-semibold text-sm inline-block"
                 >
-                  {t("exploreProducts") || "Explore Products"}
+                  {t("exploreProducts")}
                 </a>
                 <Link
                   to={path("/about")}
                   className="border-2 border-gray-300 text-gray-700 px-6 md:px-8 py-3 rounded-full font-semibold text-sm hover:border-[#FF9900] hover:text-[#FF9900] transition-all inline-block"
                 >
-                  {t("learnMore") || "Learn More"}
+                  {t("learnMore")}
                 </Link>
               </div>
             </div>
@@ -646,3 +646,7 @@ function ProductRow({ product }: { product: Product }) {
     </article>
   );
 }
+    </article>
+  );
+}
+                         

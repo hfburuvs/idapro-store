@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { supabase } from "@/lib/supabase";
+import { countryConfig } from "@/lib/i18n";
 import {
   ShoppingBag, MessageSquare, Star, LogOut, Package,
   Upload, Download, Trash2, Plus, Search, Pencil,
@@ -938,9 +939,9 @@ function ProductsTab() {
         <div className="text-sm text-gray-400">Loading...</div>
       ) : (
         <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto" style={{ maxHeight: 'calc(100vh - 280px)' }}>
             <table className="w-full text-sm">
-              <thead>
+              <thead className="sticky top-0 z-10">
                 <tr className="bg-gray-50 text-gray-500 text-xs uppercase">
                   <th className="px-2 py-2 text-left w-8">
                     <input
@@ -1006,7 +1007,7 @@ function ProductsTab() {
                       <td className="px-4 py-2"><img src={p.image_url} alt="" className="w-10 h-10 rounded object-cover" /></td>
                       <td className="px-4 py-2 font-medium text-gray-900 max-w-[150px] truncate">{p.title}</td>
                       <td className="px-4 py-2 text-xs text-gray-500">{cat?.name || "-"} / {brand?.name || "-"}</td>
-                      <td className="px-4 py-2">${p.price}</td>
+                      <td className="px-4 py-2">{(countryConfig[p.country]?.currency || "$") + p.price}</td>
                       <td className="px-4 py-2 text-center">
                         <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium ${p.country === "de" ? "bg-black text-white" : p.country === "es" ? "bg-red-50 text-red-700" : p.country === "it" ? "bg-green-50 text-green-700" : p.country === "fr" ? "bg-orange-50 text-blue-700" : "bg-gray-100 text-gray-700"}`}>
                           {p.country?.toUpperCase() || "US"}
@@ -2107,6 +2108,4 @@ function parseCSVLine(line: string): string[] {
     } else if (char === ',' && !inQuotes) { result.push(current.trim()); current = ""; }
     else { current += char; }
   }
-  result.push(current.trim());
-  return result.map((v) => v.replace(/^"|"$/g, ""));
-}
+  result.pu
