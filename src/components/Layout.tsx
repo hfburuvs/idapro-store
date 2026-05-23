@@ -96,18 +96,31 @@ export default function Layout({ children }: { children: ReactNode }) {
         (settings || []).forEach((s: Setting) => { map[s.key] = s.value; });
         setSettingsMap(map);
 
-        const [{ data: analytics }, { data: seoSettings }] = await Promise.all([
-          supabase.from("analytics").select("code").eq("is_active", 1),
-          supabase.from("seo_settings").select("*"),
-        ]);
-        if (analytics && analytics.length > 0) {
-          setAnalyticsCode(analytics.map((a) => a.code).join("\n"));
+        // Load analytics code independently (don't let other queries fail affect this)
+        try {
+          const { data: analytics } = await supabase.from("analytics").select("code").eq("is_active", 1);
+          if (analytics && analytics.length > 0) {
+            setAnalyticsCode(analytics.map((a: any) => a.code).join("\n"));
+          } else {
+            setAnalyticsCode("");
+          }
+        } catch (analyticsErr: any) {
+          console.error("[Layout] Failed to load analytics:", analyticsErr);
+          setAnalyticsCode("");
         }
-        const seo: Record<string, string> = {};
-        (seoSettings || []).forEach((s: any) => { seo[s.key] = s.value; });
-        setSeoMap(seo);
+
+        // Load SEO settings independently
+        try {
+          const { data: seoSettings } = await supabase.from("seo_settings").select("*");
+          const seo: Record<string, string> = {};
+          (seoSettings || []).forEach((s: any) => { seo[s.key] = s.value; });
+          setSeoMap(seo);
+        } catch (seoErr: any) {
+          console.error("[Layout] Failed to load SEO settings:", seoErr);
+          setSeoMap({});
+        }
       } catch (err: any) {
-        console.error("[Layout] Failed to load data:", err);
+        console.error("[Layout] Failed to load main data:", err);
         setCategories([]); setNavItems([]); setSettingsMap({}); setCategoryBrands({});
       }
     }
