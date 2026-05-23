@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { Star, ExternalLink, ChevronLeft } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useCountry } from "@/hooks/useCountry";
+import { trackViewItem, trackClickAffiliate } from "@/lib/analytics";
 
 interface Product {
   id: number;
@@ -58,6 +59,22 @@ export default function ProductDetail() {
     }
     if (productId > 0) loadData();
   }, [productId]);
+
+  // Track GA4 view_item when product loads
+  useEffect(() => {
+    if (product) {
+      trackViewItem(
+        {
+          id: product.id,
+          title: product.title,
+          price: product.price,
+          category: String(product.category_id),
+          currency: config.currency,
+        },
+        config.currency
+      );
+    }
+  }, [product, config.currency]);
 
   const features: string[] = (() => {
     try {
@@ -225,6 +242,18 @@ export default function ProductDetail() {
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center justify-center gap-2 w-full sm:w-auto bg-[#FF9900] hover:bg-[#E68A00] text-white font-semibold py-3 px-8 rounded-lg transition-colors"
+              onClick={() => {
+                trackClickAffiliate(
+                  {
+                    id: product.id,
+                    title: product.title,
+                    price: product.price,
+                    category: String(product.category_id),
+                    currency: config.currency,
+                  },
+                  config.currency
+                );
+              }}
             >
               {t("buyNow")}
               <ExternalLink className="w-4 h-4" />

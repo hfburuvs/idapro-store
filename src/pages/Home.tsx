@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { Star, ExternalLink, Camera, Watch, Search, X } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useCountry } from "@/hooks/useCountry";
+import { trackSelectItem, trackClickAffiliate } from "@/lib/analytics";
 
 /* ========================================
    Home — Amazon Style Grid Layout
@@ -154,7 +155,7 @@ export default function Home() {
             </div>
           ) : searchResults.length > 0 ? (
             <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))' }}>
-              {searchResults.map(p => <ProductCard key={p.id} product={p} />)}
+              {searchResults.map(p => <ProductCard key={p.id} product={p} categoryName="Search Results" />)},
             </div>
           ) : (
             <div className="text-center py-16"><Search className="w-12 h-12 mx-auto mb-4" style={{ color: '#ccc' }} /><h2 className="text-lg font-medium mb-2">{t("noResults")}</h2></div>
@@ -277,14 +278,14 @@ function CategorySection({ category }: { category: Category }) {
                 <span className="text-xs font-normal" style={{ color: '#999' }}>({productsByBrand[brand.id]?.length || 0})</span>
               </h3>
               <div className="grid gap-4 product-grid">
-                {(productsByBrand[brand.id] || []).map(product => <ProductCard key={product.id} product={product} />)}
+                {(productsByBrand[brand.id] || []).map(product => <ProductCard key={product.id} product={product} categoryName={`${category.name} > ${brand.name}`} />)},
               </div>
             </div>
           ))}
           {/* Products without a known brand */}
           {(productsByBrand[0] || products.filter(p => !brands.some(b => b.id === p.brand_id))).length > 0 && (
             <div className="grid gap-4 product-grid mt-4">
-              {(productsByBrand[0] || products.filter(p => !brands.some(b => b.id === p.brand_id))).map(product => <ProductCard key={product.id} product={product} />)}
+              {(productsByBrand[0] || products.filter(p => !brands.some(b => b.id === p.brand_id))).map(product => <ProductCard key={product.id} product={product} categoryName={category.name} />)},
             </div>
           )}
         </>
@@ -293,21 +294,36 @@ function CategorySection({ category }: { category: Category }) {
   );
 }
 
-function ProductCard({ product }: { product: Product }) {
+function ProductCard({ product, categoryName = "" }: { product: Product; categoryName?: string }) {
   const { path, config } = useCountry();
   const currency = config.currency || "$";
   const priceWhole = Math.floor(product.price);
   const priceFrac = Math.round((product.price - priceWhole) * 100).toString().padStart(2, '0');
 
+  const handleSelectItem = () => {
+    trackSelectItem(
+      "home_grid",
+      categoryName || "All Products",
+      {
+        id: product.id,
+        title: product.title,
+        price: product.price,
+        category: categoryName,
+        currency: config.currency,
+      },
+      config.currency
+    );
+  };
+
   return (
     <div className="bg-white rounded-lg overflow-hidden transition-all duration-200 cursor-pointer group" style={{ border: '1px solid transparent' }} onMouseEnter={(e) => { e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.1)'; e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.borderColor = '#e3e6e6'; }} onMouseLeave={(e) => { e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.transform = 'none'; e.currentTarget.style.borderColor = 'transparent'; }}>
-      <Link to={path(`/product/${product.id}`)} className="block">
+      <Link to={path(`/product/${product.id}`)} className="block" onClick={handleSelectItem}>
         <div className="w-full flex items-center justify-center" style={{ aspectRatio: 1, background: '#f7f8f8', padding: 16 }}>
           <img src={product.image_url} alt={product.title} className="w-full h-full object-contain" loading="lazy" decoding="async" />
         </div>
       </Link>
       <div className="p-3">
-        <Link to={path(`/product/${product.id}`)}>
+        <Link to={path(`/product/${product.id}`)} onClick={handleSelectItem}>
           <h4 className="text-sm mb-1.5 leading-snug transition-colors group-hover:text-orange-600" style={{ color: '#0F1111', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', minHeight: 40 }}>
             {product.title}
           </h4>
@@ -327,7 +343,13 @@ function ProductCard({ product }: { product: Product }) {
           )}
         </div>
         {/* Amazon Button */}
-        <a href={product.amazon_link} target="_blank" rel="noopener noreferrer" className="block w-full text-center py-1.5 rounded-full text-xs font-semibold transition-all" style={{ background: 'linear-gradient(180deg, #ffd472, #f3a847)', color: '#0F1111', border: '1px solid #a88734' }} onMouseEnter={(e) => (e.currentTarget.style.filter = 'brightness(0.95)')} onMouseLeave={(e) => (e.currentTarget.style.filter = 'brightness(1)')} onClick={(e) => e.stopPropagation()}>
+        <a href={product.amazon_link} target="_blank" rel="noopener noreferrer" className="block w-full text-center py-1.5 rounded-full text-xs font-semibold transition-all" style={{ background: 'linear-gradient(180deg, #ffd472, #f3a847)', color: '#0F1111', border: '1px solid #a88734' }} onMouseEnter={(e) => (e.currentTarget.style.filter = 'brightness(0.95)')} onMouseLeave={(e) => (e.currentTarget.style.filter = 'brightness(1)')} onClick={(e) => {
+          e.stopPropagation();
+          trackClickAffiliate(
+            { id: product.id, title: product.title, price: product.price, category: categoryName, currency: config.currency },
+            config.currency
+          );
+        }}>
           Amazon<ExternalLink className="w-3 h-3 inline-block ml-1 -mt-0.5" />
         </a>
       </div>
@@ -339,7 +361,4 @@ function ProductCard({ product }: { product: Product }) {
 function Star(props: any) {
   return (
     <svg {...props} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-    </svg>
-  );
-}
+      <path strokeLinecap="round" strokeLinejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.51
