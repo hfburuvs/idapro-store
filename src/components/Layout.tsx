@@ -242,8 +242,8 @@ export default function Layout({ children }: { children: ReactNode }) {
 
       {/* ===== GRAY SUB NAV (#232f3e) with Brand Dropdowns ===== */}
       {categories.length > 0 && (
-        <nav className="hidden md:flex items-center gap-0 px-4 text-sm sticky z-40" style={{ background: '#232f3e', height: 40, color: '#fff', top: 60 }}>
-          <div className="max-w-[1500px] mx-auto flex items-center gap-0 w-full">
+        <nav className="hidden md:flex items-center gap-0 text-sm sticky z-40" style={{ background: '#232f3e', height: 40, color: '#fff', top: 60 }}>
+          <div className="max-w-[1500px] mx-auto px-3 sm:px-4 flex items-center gap-0 w-full">
             {categories.map((cat) => {
               const brands = categoryBrands[cat.id] || [];
               return (
@@ -276,8 +276,8 @@ export default function Layout({ children }: { children: ReactNode }) {
       <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="w-full text-center text-sm cursor-pointer transition-colors" style={{ background: '#37475a', color: '#fff', padding: '14px' }} onMouseEnter={(e) => (e.currentTarget.style.background = '#485769')} onMouseLeave={(e) => (e.currentTarget.style.background = '#37475a')}>
         Back to top
       </button>
-      <footer style={{ background: '#232f3e', color: '#fff', padding: '40px 24px' }}>
-        <div className="max-w-[1000px] mx-auto grid grid-cols-2 md:grid-cols-4 gap-10">
+      <footer style={{ background: '#232f3e', color: '#fff', padding: '40px 0' }}>
+        <div className="max-w-[1500px] mx-auto px-3 sm:px-4 grid grid-cols-2 md:grid-cols-4 gap-10">
           <div>
             <h4 className="font-bold mb-3 text-base">Get to Know Us</h4>
             <Link to={path("/about")} className="block py-1 text-sm" style={{ color: '#ddd' }} onMouseEnter={(e) => (e.currentTarget.style.textDecoration = 'underline')} onMouseLeave={(e) => (e.currentTarget.style.textDecoration = 'none')}>{t("about")}</Link>
@@ -305,9 +305,11 @@ export default function Layout({ children }: { children: ReactNode }) {
           </div>
         </div>
       </footer>
-      <div className="text-center" style={{ background: '#131921', color: '#aaa', padding: '24px', fontSize: 12 }}>
-        <div style={{ fontSize: 18, fontWeight: 700, color: '#FF9900', marginBottom: 4 }}>{siteTitle}</div>
-        <p>&copy; {new Date().getFullYear()} {siteTitle}. {t("copyright") || "All rights reserved."}</p>
+      <div style={{ background: '#131921', color: '#aaa', padding: '24px 0', fontSize: 12 }}>
+        <div className="max-w-[1500px] mx-auto px-3 sm:px-4 text-center">
+          <div style={{ fontSize: 18, fontWeight: 700, color: '#FF9900', marginBottom: 4 }}>{siteTitle}</div>
+          <p>&copy; {new Date().getFullYear()} {siteTitle}. {t("copyright") || "All rights reserved."}</p>
+        </div>
       </div>
 
       {/* Analytics code injection */}

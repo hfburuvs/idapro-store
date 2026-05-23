@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Shield, Eye, Smartphone, Award, Users, Zap, ChevronLeft, ChevronRight, Play } from "lucide-react";
+import { Shield, Eye, Smartphone, Award, Users, Zap, ChevronLeft, ChevronRight } from "lucide-react";
 import { Link } from "react-router";
 import { useCountry } from "@/hooks/useCountry";
 import { supabase } from "@/lib/supabase";
@@ -119,9 +119,20 @@ export default function About() {
                 )}
               </div>
             ) : (
-              <div className="aspect-video rounded-lg flex flex-col items-center justify-center" style={{ background: '#f7f8f8' }}>
-                <Play className="w-12 h-12 mb-3" style={{ color: '#ccc' }} />
-                <p className="text-sm" style={{ color: '#999' }}>No videos yet</p>
+              <div className="aspect-video rounded-lg flex flex-col items-center justify-center relative overflow-hidden" style={{ background: '#131921' }}>
+                {/* Decorative elements */}
+                <div className="absolute top-0 right-0 w-32 h-32 rounded-full opacity-5" style={{ background: '#FF9900', transform: 'translate(30%, -30%)' }} />
+                <div className="absolute bottom-0 left-0 w-24 h-24 rounded-full opacity-5" style={{ background: '#FF9900', transform: 'translate(-30%, 30%)' }} />
+                <div className="relative z-10 text-center px-6">
+                  <div className="text-4xl font-black mb-2" style={{ color: '#FF9900', letterSpacing: -1 }}>iDaPro</div>
+                  <div className="text-sm font-medium mb-1" style={{ color: '#fff' }}>Precision Armor</div>
+                  <div className="text-xs mb-4" style={{ color: '#999' }}>Unstoppable Clarity</div>
+                  <div className="flex items-center justify-center gap-4">
+                    <Shield className="w-6 h-6" style={{ color: '#FF9900' }} />
+                    <Eye className="w-6 h-6" style={{ color: '#FF9900' }} />
+                    <Smartphone className="w-6 h-6" style={{ color: '#FF9900' }} />
+                  </div>
+                </div>
               </div>
             )}
           </div>

@@ -168,7 +168,7 @@ export default function Home() {
     <div>
       {/* Hero */}
       <section style={{ background: 'linear-gradient(135deg, #f7f8f8 0%, #e8e8e8 50%, #f0f1f1 100%)', padding: '40px 0' }}>
-        <div className="max-w-[1500px] mx-auto flex flex-col lg:flex-row items-center gap-10">
+        <div className="max-w-[1500px] mx-auto px-3 sm:px-4 flex flex-col lg:flex-row items-center gap-10">
           <div className="flex-1 space-y-5 text-center lg:text-left">
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold" style={{ background: '#131921', color: '#fff', letterSpacing: 0.3 }}>
               <span className="w-2 h-2 rounded-full animate-pulse" style={{ background: '#FF9900' }} />
