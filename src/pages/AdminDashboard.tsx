@@ -1742,6 +1742,9 @@ function SettingsTab() {
     { key: "footerAbout", label: "Footer About Text", long: true },
   ];
 
+  // Logo image is handled separately (file upload)
+  const logoImageKey = "logoImage";
+
   async function load() {
     try {
       const { data } = await supabase.from("settings").select("*");
@@ -1784,6 +1787,41 @@ function SettingsTab() {
           </div>
         ))}
         <button onClick={save} disabled={saving} className="px-4 py-2 bg-[#FF9900] hover:bg-[#E68A00] text-white rounded-lg text-sm font-medium disabled:opacity-50">{saving ? "Saving..." : "Save Settings"}</button>
+      </div>
+
+      {/* Logo Image Upload */}
+      <div className="bg-white rounded-xl border border-gray-100 p-4 space-y-4">
+        <h3 className="text-lg font-semibold text-gray-900">Site Logo</h3>
+        <p className="text-xs text-gray-500">Upload a PNG with transparent background. If not uploaded, &quot;iDaPro&quot; text will be displayed.</p>
+        <div className="flex items-center gap-4">
+          {settings[logoImageKey] ? (
+            <div className="relative">
+              <img src={settings[logoImageKey]} alt="Logo preview" className="h-12 w-auto object-contain border rounded-lg p-1" />
+              <button onClick={() => { setSettings({ ...settings, [logoImageKey]: "" }); }} className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center">×</button>
+            </div>
+          ) : (
+            <div className="h-12 px-4 flex items-center justify-center border border-dashed border-gray-300 rounded-lg text-sm text-gray-400">No logo — &quot;iDaPro&quot; text will show</div>
+          )}
+          <label className="cursor-pointer px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium text-gray-700 transition-colors flex items-center gap-1.5">
+            <Upload className="w-4 h-4" /> Upload Logo
+            <input type="file" accept="image/png,image/svg+xml" className="hidden" onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              const reader = new FileReader();
+              reader.onload = (ev) => {
+                const result = ev.target?.result as string;
+                if (result) {
+                  setSettings({ ...settings, [logoImageKey]: result });
+                }
+              };
+              reader.readAsDataURL(file);
+              e.target.value = "";
+            }} />
+          </label>
+        </div>
+        {settings[logoImageKey] && (
+          <button onClick={async () => { setSaving(true); try { const { data: existing } = await supabase.from("settings").select("id").eq("key", logoImageKey).single(); if (existing) { await supabase.from("settings").update({ value: settings[logoImageKey] }).eq("key", logoImageKey); } else { await supabase.from("settings").insert({ key: logoImageKey, value: settings[logoImageKey] }); } } catch (err: any) { setError(err.message); } setSaving(false); }} disabled={saving} className="px-4 py-2 bg-[#FF9900] hover:bg-[#E68A00] text-white rounded-lg text-sm font-medium disabled:opacity-50">{saving ? "Saving..." : "Save Logo"}</button>
+        )}
       </div>
 
       {/* Password Change */}

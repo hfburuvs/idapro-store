@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>iDaPro - Amazon Style Demo</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Amazon Ember', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; background: #EAEDED; color: #0F1111; }
+    a { text-decoration: none; color: inherit; }
+    ul { list-style: none; }
+
+    /* ===== TOP BAR (Black - Amazon Style) ===== */
+    .top-bar {
+      background: #131921;
+      color: #fff;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 12px;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      flex-shrink: 0;
+      padding: 4px 8px;
+      border: 1px solid transparent;
+      border-radius: 2px;
+      cursor: pointer;
+      transition: border-color 0.15s;
+    }
+    .logo:hover { border-color: #fff; }
+    .logo img { height: 36px; width: auto; }
+    .logo-text {
+      font-size: 26px;
+      font-weight: 700;
+      color: #FF9900;
+      letter-spacing: -0.5px;
+    }
+    .logo-text span { color: #fff; font-weight: 400; font-size: 14px; display: block; letter-spacing: 0; margin-top: -4px; }
+
+    /* Search Bar */
+    .search-wrap {
+      flex: 1;
+      max-width: 720px;
+      display: flex;
+      height: 40px;
+      border-radius: 4px;
+      overflow: hidden;
+      margin: 0 auto;
+    }
+    .search-select {
+      background: #f3f3f3;
+      border: none;
+      border-right: 1px solid #cdcdcd;
+      padding: 0 8px;
+      font-size: 12px;
+      color: #555;
+      cursor: pointer;
+      min-width: 50px;
+    }
+    .search-input {
+      flex: 1;
+      border: none;
+      padding: 0 12px;
+      font-size: 15px;
+      outline: none;
+    }
+    .search-btn {
+      background: #febd69;
+      border: none;
+      width: 45px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s;
+    }
+    .search-btn:hover { background: #f3a847; }
+    .search-btn svg { width: 20px; height: 20px; }
+
+    /* Nav Links */
+    .top-nav {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      flex-shrink: 0;
+    }
+    .top-nav a {
+      padding: 8px 12px;
+      font-size: 14px;
+      font-weight: 500;
+      border: 1px solid transparent;
+      border-radius: 2px;
+      transition: border-color 0.15s;
+      white-space: nowrap;
+    }
+    .top-nav a:hover { border-color: #fff; }
+
+    /* Country Switcher */
+    .country-switch {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 8px 10px;
+      border: 1px solid transparent;
+      border-radius: 2px;
+      cursor: pointer;
+      font-size: 13px;
+      flex-shrink: 0;
+    }
+    .country-switch:hover { border-color: #fff; }
+    .country-switch .flag { font-size: 16px; }
+
+    /* ===== SUB NAV (Gray - Amazon Style) ===== */
+    .sub-nav {
+      background: #232f3e;
+      color: #fff;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 4px;
+      font-size: 14px;
+      position: sticky;
+      top: 60px;
+      z-index: 999;
+    }
+    .sub-nav-item {
+      position: relative;
+      padding: 6px 10px;
+      border: 1px solid transparent;
+      border-radius: 2px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: border-color 0.15s;
+    }
+    .sub-nav-item:hover { border-color: #fff; }
+    .sub-nav-item .arrow { font-size: 10px; margin-left: 4px; opacity: 0.7; }
+
+    /* Dropdown */
+    .dropdown {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      background: #fff;
+      color: #0F1111;
+      min-width: 220px;
+      border-radius: 0 0 4px 4px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      padding: 8px 0;
+      display: none;
+      z-index: 1001;
+    }
+    .sub-nav-item:hover .dropdown { display: block; }
+    .dropdown-header {
+      font-size: 16px;
+      font-weight: 700;
+      padding: 4px 16px 8px;
+      color: #0F1111;
+    }
+    .dropdown a {
+      display: block;
+      padding: 6px 16px;
+      font-size: 13px;
+      color: #444;
+      transition: background 0.1s, color 0.1s;
+    }
+    .dropdown a:hover { background: #EAEDED; color: #e47911; text-decoration: underline; }
+    .dropdown-divider { height: 1px; background: #eee; margin: 6px 0; }
+
+    /* ===== HERO ===== */
+    .hero {
+      background: linear-gradient(135deg, #f7f8f8 0%, #e8e8e8 50%, #f0f1f1 100%);
+      padding: 40px 24px;
+    }
+    .hero-inner {
+      max-width: 1300px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      gap: 40px;
+    }
+    .hero-left { flex: 1; }
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #131921;
+      color: #fff;
+      padding: 5px 14px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      letter-spacing: 0.3px;
+    }
+    .hero-badge .dot { width: 7px; height: 7px; background: #FF9900; border-radius: 50%; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+    .hero h1 { font-size: 42px; font-weight: 700; color: #0F1111; line-height: 1.15; margin-bottom: 14px; }
+    .hero h1 .highlight { color: #FF9900; }
+    .hero p { font-size: 16px; color: #565959; line-height: 1.6; max-width: 480px; margin-bottom: 24px; }
+    .hero-btns { display: flex; gap: 12px; flex-wrap: wrap; }
+    .btn-primary {
+      background: linear-gradient(180deg, #ffd472 0%, #f3a847 100%);
+      color: #0F1111;
+      padding: 11px 28px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      border: 1px solid #a88734;
+      cursor: pointer;
+      transition: filter 0.15s;
+    }
+    .btn-primary:hover { filter: brightness(0.95); }
+    .btn-secondary {
+      background: #fff;
+      color: #0F1111;
+      padding: 11px 28px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      border: 1px solid #d5d9d9;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-secondary:hover { background: #f7fafa; }
+
+    .hero-right {
+      flex: 1;
+      max-width: 540px;
+      position: relative;
+    }
+    .hero-carousel {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+      overflow: hidden;
+    }
+    .hero-carousel img { width: 100%; height: 300px; object-fit: cover; display: block; }
+    .carousel-dots { display: flex; justify-content: center; gap: 6px; padding: 12px; }
+    .carousel-dots span { width: 8px; height: 8px; border-radius: 50%; background: #ddd; cursor: pointer; }
+    .carousel-dots span.active { background: #FF9900; width: 20px; border-radius: 4px; }
+
+    /* ===== PRODUCT GRID ===== */
+    .section { max-width: 1300px; margin: 0 auto; padding: 30px 24px; }
+    .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+    .section-header h2 { font-size: 22px; font-weight: 700; color: #0F1111; }
+    .section-header a { color: #007185; font-size: 14px; font-weight: 500; }
+    .section-header a:hover { color: #c7511f; text-decoration: underline; }
+
+    /* 5-6 column grid */
+    .product-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+      gap: 16px;
+    }
+    @media (min-width: 1200px) {
+      .product-grid { grid-template-columns: repeat(6, 1fr); }
+    }
+    @media (min-width: 900px) and (max-width: 1199px) {
+      .product-grid { grid-template-columns: repeat(5, 1fr); }
+    }
+    @media (min-width: 600px) and (max-width: 899px) {
+      .product-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+    @media (max-width: 599px) {
+      .product-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    .product-card {
+      background: #fff;
+      border-radius: 8px;
+      overflow: hidden;
+      transition: box-shadow 0.2s, transform 0.15s;
+      cursor: pointer;
+      border: 1px solid transparent;
+    }
+    .product-card:hover {
+      box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+      transform: translateY(-2px);
+      border-color: #e3e6e6;
+    }
+    .product-img {
+      width: 100%;
+      aspect-ratio: 1;
+      object-fit: contain;
+      background: #f7f8f8;
+      padding: 16px;
+    }
+    .product-info { padding: 12px; }
+    .product-title {
+      font-size: 13px;
+      color: #0F1111;
+      line-height: 1.4;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      margin-bottom: 6px;
+      min-height: 37px;
+    }
+    .product-title:hover { color: #c7511f; }
+    .product-rating { display: flex; align-items: center; gap: 4px; margin-bottom: 4px; }
+    .stars { color: #ffa41c; font-size: 14px; letter-spacing: -1px; }
+    .rating-count { font-size: 12px; color: #007185; }
+    .product-price {
+      font-size: 18px;
+      font-weight: 600;
+      color: #0F1111;
+      margin-bottom: 8px;
+    }
+    .product-price .currency { font-size: 12px; vertical-align: top; position: relative; top: 2px; }
+    .product-price .whole { font-size: 20px; }
+    .product-price .fraction { font-size: 12px; vertical-align: top; }
+    .product-price .was { font-size: 12px; color: #565959; text-decoration: line-through; margin-left: 6px; font-weight: 400; }
+    .amazon-btn {
+      display: block;
+      width: 100%;
+      background: linear-gradient(180deg, #ffd472 0%, #f3a847 100%);
+      color: #0F1111;
+      text-align: center;
+      padding: 7px 0;
+      border-radius: 16px;
+      font-size: 12px;
+      font-weight: 600;
+      border: 1px solid #a88734;
+      cursor: pointer;
+      transition: filter 0.15s;
+    }
+    .amazon-btn:hover { filter: brightness(0.95); }
+
+    /* Category Section Header */
+    .cat-section {
+      background: #fff;
+      border-radius: 8px;
+      padding: 24px;
+      margin-bottom: 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+    .cat-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #eee;
+    }
+    .cat-icon { width: 32px; height: 32px; background: #131921; border-radius: 6px; display: flex; align-items: center; justify-content: center; }
+    .cat-icon svg { width: 18px; height: 18px; stroke: #FF9900; }
+    .cat-header h3 { font-size: 18px; font-weight: 700; color: #0F1111; }
+
+    /* ===== FOOTER ===== */
+    .footer-back { background: #37475a; color: #fff; text-align: center; padding: 14px; font-size: 13px; cursor: pointer; }
+    .footer-back:hover { background: #485769; }
+    .footer-main {
+      background: #232f3e;
+      color: #fff;
+      padding: 40px 24px;
+    }
+    .footer-inner {
+      max-width: 1000px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 40px;
+    }
+    @media (max-width: 768px) { .footer-inner { grid-template-columns: repeat(2, 1fr); } }
+    .footer-col h4 { font-size: 16px; font-weight: 700; margin-bottom: 14px; }
+    .footer-col a { display: block; font-size: 14px; color: #ddd; padding: 3px 0; }
+    .footer-col a:hover { text-decoration: underline; }
+    .footer-bottom {
+      background: #131921;
+      color: #fff;
+      text-align: center;
+      padding: 24px;
+      font-size: 12px;
+      color: #aaa;
+    }
+    .footer-logo { font-size: 20px; font-weight: 700; color: #FF9900; margin-bottom: 8px; }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 768px) {
+      .top-bar { flex-wrap: wrap; height: auto; padding: 8px; gap: 6px; }
+      .search-wrap { order: 3; width: 100%; max-width: none; margin: 4px 0 0; }
+      .top-nav { display: none; }
+      .hero-inner { flex-direction: column; }
+      .hero h1 { font-size: 28px; }
+      .hero-right { max-width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ===== BLACK TOP BAR ===== -->
+<header class="top-bar">
+  <!-- Logo -->
+  <div class="logo">
+    <!-- When no logo image uploaded, show text -->
+    <div class="logo-text">iDaPro</div>
+    <!-- When logo uploaded, use: <img src="/logo.png" alt="iDaPro"> -->
+  </div>
+
+  <!-- Search Bar -->
+  <div class="search-wrap">
+    <select class="search-select">
+      <option>All</option>
+      <option>Camera</option>
+      <option>Watch</option>
+    </select>
+    <input type="text" class="search-input" placeholder="Search iDaPro">
+    <button class="search-btn">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+    </button>
+  </div>
+
+  <!-- Nav Links (No Products - dropdown moved to sub-nav) -->
+  <nav class="top-nav">
+    <a href="#">Home</a>
+    <a href="#">About</a>
+    <a href="#">Contact</a>
+  </nav>
+
+  <!-- Country Switcher -->
+  <div class="country-switch">
+    <span class="flag">🇺🇸</span>
+    <span>US</span>
+  </div>
+</header>
+
+<!-- ===== GRAY SUB NAV with Dropdown Brands ===== -->
+<nav class="sub-nav">
+  <div class="sub-nav-item">
+    📷 Camera Accessories <span class="arrow">▼</span>
+    <div class="dropdown">
+      <div class="dropdown-header">Camera Brands</div>
+      <a href="#">GoPro</a>
+      <a href="#">Canon</a>
+      <a href="#">Sony</a>
+      <a href="#">Nikon</a>
+      <a href="#">DJI</a>
+    </div>
+  </div>
+  <div class="sub-nav-item">
+    ⌚ Watch Accessories <span class="arrow">▼</span>
+    <div class="dropdown">
+      <div class="dropdown-header">Watch Brands</div>
+      <a href="#">Apple Watch</a>
+      <a href="#">Samsung Galaxy</a>
+      <a href="#">Garmin</a>
+      <a href="#">Fitbit</a>
+      <a href="#">Amazfit</a>
+    </div>
+  </div>
+  <div class="sub-nav-item">
+    📱 Phone Accessories <span class="arrow">▼</span>
+    <div class="dropdown">
+      <div class="dropdown-header">Phone Brands</div>
+      <a href="#">iPhone</a>
+      <a href="#">Samsung</a>
+      <a href="#">Google Pixel</a>
+      <a href="#">OnePlus</a>
+      <a href="#">Xiaomi</a>
+    </div>
+  </div>
+  <div class="sub-nav-item">
+    🎧 Audio Accessories <span class="arrow">▼</span>
+    <div class="dropdown">
+      <div class="dropdown-header">Audio Brands</div>
+      <a href="#">AirPods</a>
+      <a href="#">Sony</a>
+      <a href="#">Bose</a>
+      <a href="#">JBL</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ===== HERO ===== -->
+<section class="hero">
+  <div class="hero-inner">
+    <div class="hero-left">
+      <div class="hero-badge"><span class="dot"></span> New Collection 2026</div>
+      <h1>Discover <span class="highlight">Quality</span><br>Products Daily</h1>
+      <p>Curated selection of top-rated screen protectors, cases, and accessories for your cameras, watches, and phones.</p>
+      <div class="hero-btns">
+        <a href="#products" class="btn-primary">Explore Products</a>
+        <a href="#" class="btn-secondary">Learn More</a>
+      </div>
+    </div>
+    <div class="hero-right">
+      <div class="hero-carousel">
+        <img src="https://images.unsplash.com/photo-1550009158-9ebf69173e03?w=800&h=400&fit=crop" alt="Featured">
+        <div class="carousel-dots">
+          <span class="active"></span>
+          <span></span>
+          <span></span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== PRODUCTS ===== -->
+<div class="section" id="products">
+
+  <!-- Camera Section -->
+  <div class="cat-section">
+    <div class="cat-header">
+      <div class="cat-icon">
+        <svg fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+      </div>
+      <h3>Camera Accessories</h3>
+    </div>
+    <div class="product-grid">
+      <div class="product-card">
+        <img class="product-img" src="https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=400&h=400&fit=crop" alt="Product">
+        <div class="product-info">
+          <div class="product-title">GoPro Hero 12 Tempered Glass Screen Protector - 9H Hardness Anti-Scratch</div>
+          <div class="product-rating"><span class="stars">★★★★★</span><span class="rating-count">2,847</span></div>
+          <div class="product-price"><span class="currency">$</span><span class="whole">12</span><span class="fraction">99</span></div>
+          <div class="amazon-btn">Check on Amazon</div>
+        </div>
+      </div>
+      <div class="product-card">
+        <img class="product-img" src="https://images.unsplash.com/photo-1502920917128-1aa500764cbd?w=400&h=400&fit=crop" alt="Product">
+        <div class="product-info">
+          <div class="product-title">Canon EOS R6 Lens Cap Cover + Body Cap Set - Premium Protection Kit</div>
+          <div class="product-rating"><span class="stars">★★★★☆</span><span class="rating-count">1,203</span></div>
+          <div class="product-price"><span class="currency">$</span><span class="whole">8</span><span class="fraction">49</span><span class="was">$11.99</span></div>
+          <div class="amazon-btn">Check on Amazon</div>
+        </div>
+      </div>
+      <div class="product-card">
+        <img class="product-img" src="https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=400&h=400&fit=crop" alt="Product">
+        <div class="product-info">
+          <div class="product-title">Sony A7 IV LCD Screen Protector - Ultra Thin HD Clear Film 3-Pack</div>
+          <div class="product-rating"><span class="stars">★★★★★</span><span class="rating-count">3,561</span></div>
+          <div class="product-price"><span class="currency">$</span><span class="whole">9</span><span class="fraction">99</span></div>
+          <div class="amazon-btn">Check on Amazon</div>
+        </div>
+      </div>
+      <div class="product-card">
+        <img class="product-img" src="https://images.unsplash.com/photo-1564466021188-1e1e574e7f36?w=400&h=400&fit=crop" alt="Product">
+        <div class="product-info">
+          <div class="product-title">DJI Osmo Action 4 Camera Case - Waterproof Shockproof Hard Shell</div>
+          <div class="product-rating"><span class="stars">★★★★☆</span><span class="rating-count">892</span></div>
+          <div class="product-price"><span class="currency">$</span><span class="whole">15</span><span class="fraction">99</span></div>
+          <div class="amazon-btn">Check on Amazon</div>
+        </div>
+      </div>
+      <div class="product-card">
+        <img class="product-img" src="https://images.unsplash.com/photo-1495707902641-75cac588d2e9?w=400&h=400&fit=crop" alt="Product">
+        <div class="product-info">
+          <div class="product-title">Nikon Z6 III Silicone Protective Cover - Full Body Camera Skin Case</div>
+          <div class="product-rating"><span class="stars">★★★★★</span><span class="rating-count">2,156</span></div>
+          <div class="product-price"><span class="currency">$</span><span class="whole">18</span><span class="fraction">99</span><span class="was">$24.99</span></div>
+          <div class="amazon-btn">Check on Amazon</div>
+        </div>
+      </div>
+      <div class="product-card">
+        <img class="product-img" src="https://images.unsplash.com/photo-1581591524425-c7e0976490de?w=400&h=400&fit=crop" alt="Product">
+        <div class="product-info">
+          <div class="product-title">Fujifilm X-T5 Screen Protector + Hot Shoe Cover + Thumb Grip Set</div>
+          <div class="product-rating"><span class="stars">★★★★☆</span><span class="rating-count">743</span></div>
+          <div class="product-price"><span class="currency">$</span><span class="whole">11</span><span class="fraction">49</span></div>
+          <div class="amazon-btn">Check on Amazon</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Watch Section -->
+  <div class="cat-section">
+    <div class="cat-header">
+      <div class="cat-icon">
+        <svg fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      </div>
+      <h3>Watch Accessories</h3>
+    </div>
+    <div class="product-grid">
+      <div class="product-card">
+        <img class="product-img" src="https://images.unsplash.com/photo-1434493789847-2f02dc6ca35d?w=400&h=400&fit=crop" alt="Product">
+        <div class="product-info">
+          <div class="product-title">Apple Watch Series 9/10 Tempered Glass - 45mm Full Coverage 3-Pack</div>
+          <div class="product-rating"><span class="stars">★★★★★</span><span class="rating-count">5,234</span></div>
+          <div class="product-price"><span class="currency">$</span><span class="whole">7</span><span class="fraction">99</span></div>
+          <div class="amazon-btn">Check on Amazon</div>
+        </div>
+      </div>
+      <div class="product-card">
+        <img class="product-img" src="https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&h=400&fit=crop" alt="Product">
+        <div class="product-info">
+          <div class="product-title">Samsung Galaxy Watch 6 Protective Case with Screen Protector Built-in</div>
+          <div class="product-rating"><span class="stars">★★★★☆</span><span class="rating-count">1,876</span></div>
+          <div class="product-price"><span class="currency">$</span><span class="whole">10</span><span class="fraction">99</span><span class="was">$14.99</span></div>
+          <div class="amazon-btn">Check on Amazon</div>
+        </div>
+      </div>
+      <div class="product-card">
+        <img class="product-img" src="https://images.unsplash.com/photo-1546868871-af0c1b7b9c35?w=400&h=400&fit=crop" alt="Product">
+        <div class="product-info">
+          <div class="product-title">Garmin Fenix 7X Sapphire Screen Protector - HD Clear Anti-Bubble 2-Pack</div>
+          <div class="product-rating"><span class="stars">★★★★★</span><span class="rating-count">4,123</span></div>
+          <div class="product-price"><span class="currency">$</span><span class="whole">8</span><span class="fraction">49</span></div>
+          <div class="amazon-btn">Check on Amazon</div>
+        </div>
+      </div>
+      <div class="product-card">
+        <img class="product-img" src="https://images.unsplash.com/photo-1579586337278-3befd40fd17a?w=400&h=400&fit=crop" alt="Product">
+        <div class="product-info">
+          <div class="product-title">Fitbit Sense 2 Full Coverage TPU Case + Screen Protector Combo</div>
+          <div class="product-rating"><span class="stars">★★★★☆</span><span class="rating-count">967</span></div>
+          <div class="product-price"><span class="currency">$</span><span class="whole">6</span><span class="fraction">99</span></div>
+          <div class="amazon-btn">Check on Amazon</div>
+        </div>
+      </div>
+      <div class="product-card">
+        <img class="product-img" src="https://images.unsplash.com/photo-1508685096489-7aacd43bd3b1?w=400&h=400&fit=crop" alt="Product">
+        <div class="product-info">
+          <div class="product-title">Amazfit GTR 4 Premium Tempered Glass - Full Glue Edge to Edge 9H</div>
+          <div class="product-rating"><span class="stars">★★★★☆</span><span class="rating-count">654</span></div>
+          <div class="product-price"><span class="currency">$</span><span class="whole">5</span><span class="fraction">99</span></div>
+          <div class="amazon-btn">Check on Amazon</div>
+        </div>
+      </div>
+      <div class="product-card">
+        <img class="product-img" src="https://images.unsplash.com/photo-1617043786394-f977fa12eddf?w=400&h=400&fit=crop" alt="Product">
+        <div class="product-info">
+          <div class="product-title">Apple Watch Ultra 2 Titanium Bumper Case + Sapphire Screen Film</div>
+          <div class="product-rating"><span class="stars">★★★★★</span><span class="rating-count">3,789</span></div>
+          <div class="product-price"><span class="currency">$</span><span class="whole">14</span><span class="fraction">99</span><span class="was">$19.99</span></div>
+          <div class="amazon-btn">Check on Amazon</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ===== FOOTER ===== -->
+<div class="footer-back">Back to top</div>
+<div class="footer-main">
+  <div class="footer-inner">
+    <div class="footer-col">
+      <h4>Get to Know Us</h4>
+      <a href="#">About iDaPro</a>
+      <a href="#">Our Story</a>
+      <a href="#">Careers</a>
+    </div>
+    <div class="footer-col">
+      <h4>Shop With Us</h4>
+      <a href="#">Camera Accessories</a>
+      <a href="#">Watch Accessories</a>
+      <a href="#">Phone Accessories</a>
+    </div>
+    <div class="footer-col">
+      <h4>Customer Service</h4>
+      <a href="#">Contact Us</a>
+      <a href="#">Shipping Info</a>
+      <a href="#">Returns</a>
+    </div>
+    <div class="footer-col">
+      <h4>Stay Updated</h4>
+      <a href="#">Newsletter</a>
+      <a href="#">New Arrivals</a>
+      <a href="#">Deals</a>
+    </div>
+  </div>
+</div>
+<div class="footer-bottom">
+  <div class="footer-logo">iDaPro</div>
+  <p>© 2026 iDaPro. All rights reserved.</p>
+</div>
+
+</body>
+</html>

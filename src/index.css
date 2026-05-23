@@ -17,7 +17,7 @@
     --color-star: #FFA41C;
 
     /* ---- Neutral Colors ---- */
-    --color-bg: #F9FAFB;
+    --color-bg: #EAEDED;
     --color-surface: #FFFFFF;
     --color-border: #E5E7EB;
     --color-text-primary: #111827;
@@ -361,9 +361,9 @@
     }
   }
 
-  /* ---- Product Grid: single column ---- */
+  /* ---- Product Grid: 2 columns on mobile ---- */
   .product-grid {
-    grid-template-columns: 1fr !important;
+    grid-template-columns: repeat(2, 1fr) !important;
   }
 
   /* ---- Buttons: full width on mobile ---- */
@@ -391,12 +391,32 @@
 }
 
 /* ========================================
-   Tablet: 768px — 1023px
+   Tablet: 768px — 1023px (3 columns)
    ======================================== */
 
 @media (min-width: 768px) and (max-width: 1023px) {
   .product-grid {
-    grid-template-columns: repeat(2, 1fr) !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+  }
+}
+
+/* ========================================
+   Desktop: 1024px — 1499px (5 columns)
+   ======================================== */
+
+@media (min-width: 1024px) and (max-width: 1499px) {
+  .product-grid {
+    grid-template-columns: repeat(5, 1fr) !important;
+  }
+}
+
+/* ========================================
+   Large Desktop: 1500px+ (6 columns)
+   ======================================== */
+
+@media (min-width: 1500px) {
+  .product-grid {
+    grid-template-columns: repeat(6, 1fr) !important;
   }
 }
 
@@ -437,5 +457,4 @@
 /* ---- Selection Color ---- */
 ::selection {
   background-color: rgb(255 153 0 / 0.2);
-  color: var(--color-text-primary);
-}
+  color: var(--color-

@@ -3,22 +3,14 @@ import { useCountry } from "@/hooks/useCountry";
 import { countryConfig, type CountryCode } from "@/lib/i18n";
 import { type ReactNode, useState, useEffect } from "react";
 import {
-  ShoppingBag,
-  Menu,
-  X,
-  MessageSquare,
-  Shield,
-  Home,
-  Info,
-  ChevronDown,
-  Search,
+  ShoppingBag, Menu, X, MessageSquare, Shield,
+  Home, Info, ChevronDown, Search,
 } from "lucide-react";
 import { Helmet } from "react-helmet-async";
 import { supabase } from "@/lib/supabase";
 
 function isHomePath(pathname: string): boolean {
   if (pathname === '/') return true;
-  // Match /xx or /xx/ where xx is any 2-letter country code
   return /^\/[a-z]{2}\/?$/i.test(pathname);
 }
 
@@ -26,6 +18,13 @@ interface Category {
   id: number;
   name: string;
   slug: string;
+}
+
+interface Brand {
+  id: number;
+  name: string;
+  slug: string;
+  category_id: number;
 }
 
 interface NavItem {
@@ -46,8 +45,8 @@ export default function Layout({ children }: { children: ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [productsOpen, setProductsOpen] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [categoryBrands, setCategoryBrands] = useState<Record<number, Brand[]>>({});
   const [navItems, setNavItems] = useState<NavItem[]>([]);
   const [settingsMap, setSettingsMap] = useState<Record<string, string>>({});
   const [seoMap, setSeoMap] = useState<Record<string, string>>({});
@@ -57,44 +56,44 @@ export default function Layout({ children }: { children: ReactNode }) {
   const [searchOpen, setSearchOpen] = useState(false);
   const { country, t, path, switchCountry } = useCountry();
 
-  // Sync searchQuery with URL search param on mount and when URL changes
+  // Sync searchQuery with URL search param
   useEffect(() => {
     const urlSearch = new URLSearchParams(location.search).get("search") || "";
     setSearchQuery(urlSearch);
     if (urlSearch) setSearchOpen(true);
   }, [location.search]);
 
-  // Scroll to top on route change
-  useEffect(() => {
-    window.scrollTo({ top: 0, behavior: "instant" });
-  }, [location.pathname, location.search]);
+  useEffect(() => { window.scrollTo({ top: 0, behavior: "instant" }); }, [location.pathname, location.search]);
 
+  // Load categories, brands for sub-nav dropdowns, settings, etc.
   useEffect(() => {
     async function loadData() {
       try {
-        // Load categories that have products for the current country
         const { data: productCats } = await supabase
-          .from("products")
-          .select("category_id")
-          .eq("country", country);
+          .from("products").select("category_id").eq("country", country);
         const activeCatIds = new Set((productCats || []).map((p: any) => p.category_id));
 
-        const [{ data: cats }, { data: settings }, { data: navs }, { data: countriesData }] = await Promise.all([
+        const [{ data: cats }, { data: settings }, { data: navs }, { data: countriesData }, { data: allBrands }] = await Promise.all([
           supabase.from("categories").select("*").order("sort_order", { ascending: true }),
           supabase.from("settings").select("*"),
           supabase.from("navigation").select("*").eq("is_active", 1).order("sort_order", { ascending: true }),
           supabase.from("countries").select("*").eq("is_active", true).order("sort_order", { ascending: true }),
+          supabase.from("brands").select("*").order("sort_order", { ascending: true }),
         ]);
         setDbCountries(countriesData || []);
-        // Only show categories that have products for this country
         const filteredCats = (cats || []).filter((c: Category) => activeCatIds.has(c.id));
         setCategories(filteredCats as Category[]);
         setNavItems((navs || []) as NavItem[]);
 
-        const map: Record<string, string> = {};
-        (settings || []).forEach((s: Setting) => {
-          map[s.key] = s.value;
+        // Map brands to categories for sub-nav dropdowns
+        const brandMap: Record<number, Brand[]> = {};
+        filteredCats.forEach((cat: Category) => {
+          brandMap[cat.id] = (allBrands || []).filter((b: Brand) => b.category_id === cat.id);
         });
+        setCategoryBrands(brandMap);
+
+        const map: Record<string, string> = {};
+        (settings || []).forEach((s: Setting) => { map[s.key] = s.value; });
         setSettingsMap(map);
 
         const [{ data: analytics }, { data: seoSettings }] = await Promise.all([
@@ -104,16 +103,12 @@ export default function Layout({ children }: { children: ReactNode }) {
         if (analytics && analytics.length > 0) {
           setAnalyticsCode(analytics.map((a) => a.code).join("\n"));
         }
-        // Load SEO settings into seoMap
         const seo: Record<string, string> = {};
         (seoSettings || []).forEach((s: any) => { seo[s.key] = s.value; });
         setSeoMap(seo);
       } catch (err: any) {
         console.error("[Layout] Failed to load data:", err);
-        // Set empty defaults to avoid undefined state
-        setCategories([]);
-        setNavItems([]);
-        setSettingsMap({});
+        setCategories([]); setNavItems([]); setSettingsMap({}); setCategoryBrands({});
       }
     }
     loadData();
@@ -121,39 +116,24 @@ export default function Layout({ children }: { children: ReactNode }) {
 
   const siteTitle = settingsMap["siteTitle"] || "iDaPro";
   const contactEmail = settingsMap["contactEmail"] || "";
-  // SEO: prioritize seo_settings table, fallback to settings table, then defaults
-  const metaKeywords =
-    seoMap["metaKeywords"] ||
-    settingsMap["metaKeywords"] ||
-    "screen protector, tempered glass, camera accessories, watch accessories";
-  const metaDescription =
-    seoMap["metaDescription"] ||
-    settingsMap["metaDescription"] ||
-    "Premium screen protectors and accessories for cameras and smartwatches.";
-
-  const cleanPath = location.pathname.replace(/^\/(de|es|it|fr)\b/, "") || "/";
+  const logoImage = settingsMap["logoImage"] || "";
+  const metaKeywords = seoMap["metaKeywords"] || settingsMap["metaKeywords"] || "screen protector, tempered glass, camera accessories, watch accessories";
+  const metaDescription = seoMap["metaDescription"] || settingsMap["metaDescription"] || "Premium screen protectors and accessories for cameras and smartwatches.";
+  const cleanPath = location.pathname.replace(/^\/(de|es|it|fr|uk)\b/, "") || "/";
   const siteTagline = settingsMap["siteTagline"] || "";
-  const pageTitle =
-    cleanPath === "/"
-      ? siteTagline ? `${siteTitle} - ${siteTagline}` : siteTitle
-      : cleanPath === "/contact"
-      ? `${t("contact")} - ${siteTitle}`
-      : cleanPath === "/about"
-      ? `${t("about")} - ${siteTitle}`
-      : cleanPath.startsWith("/product/")
-      ? `${t("products")} - ${siteTitle}`
-      : cleanPath.startsWith("/category/")
-      ? `${t("categories")} - ${siteTitle}`
-      : siteTitle;
+  const pageTitle = cleanPath === "/" ? (siteTagline ? `${siteTitle} - ${siteTagline}` : siteTitle) : cleanPath === "/contact" ? `${t("contact")} - ${siteTitle}` : cleanPath === "/about" ? `${t("about")} - ${siteTitle}` : cleanPath.startsWith("/product/") ? `${t("products")} - ${siteTitle}` : cleanPath.startsWith("/category/") ? `${t("categories")} - ${siteTitle}` : siteTitle;
 
-  // Build nav from DB; fallback to hardcoded if empty
-  const hasCustomNav = navItems.length > 0;
-  const topLevelNavs = hasCustomNav
-    ? navItems.filter((n) => n.parent_id === 0)
-    : [];
+  // Country flag image URL from flagcdn
+  const flagUrl = (code: string) => `https://flagcdn.com/w40/${code?.toLowerCase()}.png`;
+
+  // Scroll to brand within a category
+  const scrollToBrand = (catSlug: string, brandSlug: string) => {
+    const el = document.getElementById(`brand-${catSlug}-${brandSlug}`);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen flex flex-col" style={{ background: '#EAEDED' }}>
       <Helmet>
         <title>{pageTitle}</title>
         <meta name="keywords" content={metaKeywords} />
@@ -163,488 +143,170 @@ export default function Layout({ children }: { children: ReactNode }) {
         <meta name="robots" content="index, follow" />
       </Helmet>
 
-      {/* ===== TOP NAVIGATION BAR ===== */}
-      <nav className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            {/* Logo */}
-            <Link to="/" className="flex items-center space-x-2 flex-shrink-0">
-              <div className="w-8 h-8 bg-[#FF9900] rounded-md flex items-center justify-center">
-                <ShoppingBag className="w-5 h-5 text-white" />
-              </div>
-              <span className="text-xl font-bold text-gray-900 tracking-tight">
-                {siteTitle}
-              </span>
+      {/* ===== BLACK TOP BAR (#131921) ===== */}
+      <header className="sticky top-0 z-50" style={{ background: '#131921', height: 60, color: '#fff' }}>
+        <div className="max-w-[1500px] mx-auto px-3 sm:px-4 h-full flex items-center gap-2 sm:gap-3">
+
+          {/* Logo */}
+          <Link to={path("/")} className="flex items-center flex-shrink-0 px-2 py-1 rounded-sm" style={{ border: '1px solid transparent' }} onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#fff')} onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'transparent')}>
+            {logoImage ? (
+              <img src={logoImage} alt={siteTitle} style={{ height: 36 }} />
+            ) : (
+              <span style={{ fontSize: 24, fontWeight: 700, color: '#FF9900', letterSpacing: -0.5 }}>iDaPro</span>
+            )}
+          </Link>
+
+          {/* Search Bar (centered) */}
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (searchQuery.trim()) navigate(path(`/?search=${encodeURIComponent(searchQuery.trim())}`));
+            }}
+            className="flex flex-1 max-w-[720px] mx-auto h-10 rounded overflow-hidden"
+          >
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search iDaPro"
+              className="flex-1 px-3 text-sm outline-none border-none"
+              style={{ borderRadius: '4px 0 0 4px', fontSize: 15 }}
+            />
+            <button type="submit" className="flex items-center justify-center transition-colors" style={{ width: 45, background: '#febd69' }} onMouseEnter={(e) => (e.currentTarget.style.background = '#f3a847')} onMouseLeave={(e) => (e.currentTarget.style.background = '#febd69')}>
+              <Search className="w-5 h-5" style={{ color: '#131921' }} />
+            </button>
+          </form>
+
+          {/* Desktop Nav: Home, About, Contact (NO Products) */}
+          <nav className="hidden md:flex items-center gap-0 flex-shrink-0">
+            <Link to={path("/")} className="text-sm font-medium px-3 py-2 rounded-sm transition-colors" style={{ border: '1px solid transparent' }} onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#fff')} onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'transparent')}>
+              {t("home")}
             </Link>
+            <Link to={path("/about")} className="text-sm font-medium px-3 py-2 rounded-sm transition-colors" style={{ border: '1px solid transparent' }} onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#fff')} onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'transparent')}>
+              {t("about")}
+            </Link>
+            <Link to={path("/contact")} className="text-sm font-medium px-3 py-2 rounded-sm transition-colors" style={{ border: '1px solid transparent' }} onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#fff')} onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'transparent')}>
+              {t("contact")}
+            </Link>
+          </nav>
 
-            {/* Desktop Nav Links */}
-            <div className="hidden md:flex items-center space-x-1">
-              {hasCustomNav ? (
-                // Dynamic nav from database
-                <>
-                  {topLevelNavs.map((item) => {
-                    const navLabelMap: Record<string, string> = {
-                      home: t("home"),
-                      products: t("products"),
-                      about: t("about"),
-                      contact: t("contact"),
-                    };
-                    const children = navItems.filter((n) => n.parent_id === item.id);
-                    const isActive = location.pathname === item.link;
-                    const isProducts = item.label?.toLowerCase() === "products" || item.link === "#products";
-                    const displayLabel = navLabelMap[item.label?.toLowerCase()] || item.label;
-                    if (children.length > 0 || isProducts) {
-                      return (
-                        <div key={item.id} className="relative group">
-                          <button className={`flex items-center space-x-1 text-sm font-medium px-3 py-2 rounded-lg transition-colors ${isActive ? "text-[#FF9900] bg-orange-50" : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"}`}>
-                            <span>{displayLabel}</span>
-                            <ChevronDown className="w-3 h-3" />
-                          </button>
-                          <div className="absolute top-full left-0 mt-1 w-56 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50 hidden group-hover:block">
-                            {children.length > 0 ? (
-                              children.map((child) => {
-                                const childLabel = navLabelMap[child.label?.toLowerCase()] || child.label;
-                                const isCatAnchor = child.link?.includes("#cat-");
-                                if (isCatAnchor) {
-                                  const catSlug = child.link.split("#cat-")[1];
-                                  return (
-                                    <a key={child.id} href={child.link} onClick={(e) => { e.preventDefault(); if (isHomePath(location.pathname)) { setTimeout(() => { const el = document.getElementById(`cat-${catSlug}`); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 100); } else { sessionStorage.setItem("scrollToCategory", `cat-${catSlug}`); navigate(path("/")); } }} className="flex items-center px-4 py-2.5 text-sm text-gray-700 hover:bg-orange-50 hover:text-[#FF9900] transition-colors">
-                                      <span className="w-2 h-2 rounded-full bg-[#FF9900] mr-3" />
-                                      {childLabel}
-                                    </a>
-                                  );
-                                }
-                                return (
-                                  <Link key={child.id} to={child.link} className="flex items-center px-4 py-2.5 text-sm text-gray-700 hover:bg-orange-50 hover:text-[#FF9900] transition-colors">
-                                    <span className="w-2 h-2 rounded-full bg-[#FF9900] mr-3" />
-                                    {childLabel}
-                                  </Link>
-                                );
-                              })
-                            ) : (
-                              categories.map((cat) => (
-                                <a key={cat.id} href={path(`/#cat-${cat.slug}`)} onClick={(e) => { e.preventDefault(); setProductsOpen(false); if (isHomePath(location.pathname)) { setTimeout(() => { const el = document.getElementById(`cat-${cat.slug}`); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 100); } else { sessionStorage.setItem("scrollToCategory", `cat-${cat.slug}`); navigate(path("/")); } }} className="flex items-center px-4 py-2.5 text-sm text-gray-700 hover:bg-orange-50 hover:text-[#FF9900] transition-colors">
-                                  <span className="w-2 h-2 rounded-full bg-[#FF9900] mr-3" />
-                                  {cat.name}
-                                </a>
-                              ))
-                            )}
-                          </div>
-                        </div>
-                      );
-                    }
-                    return (
-                      <Link key={item.id} to={item.link === "/" ? path("/") : item.link === "/about" ? path("/about") : item.link === "/contact" ? path("/contact") : item.link} className={`flex items-center space-x-1 text-sm font-medium px-3 py-2 rounded-lg transition-colors ${isActive ? "text-[#FF9900] bg-orange-50" : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"}`}>
-                        <span>{displayLabel}</span>
-                      </Link>
-                    );
-                  })}
-                </>
-              ) : (
-                // Fallback: hardcoded nav
-                <>
-                  <Link
-                    to={path("/")}
-                    className={`flex items-center space-x-1.5 text-sm font-medium px-3 py-2 rounded-lg transition-colors ${
-                      cleanPath === "/"
-                        ? "text-[#FF9900] bg-orange-50"
-                        : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
-                    }`}
-                  >
-                    <Home className="w-4 h-4" />
-                    <span>{t("home")}</span>
-                  </Link>
-
-                  <div
-                    className="relative"
-                    onMouseEnter={() => setProductsOpen(true)}
-                    onMouseLeave={() => setProductsOpen(false)}
-                  >
-                    <button
-                      className={`flex items-center space-x-1.5 text-sm font-medium px-3 py-2 rounded-lg transition-colors ${
-                        location.pathname.startsWith("/category")
-                          ? "text-[#FF9900] bg-orange-50"
-                          : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
-                      }`}
-                    >
-                      <ShoppingBag className="w-4 h-4" />
-                      <span>{t("products")}</span>
-                      <ChevronDown
-                        className={`w-3 h-3 transition-transform ${
-                          productsOpen ? "rotate-180" : ""
-                        }`}
-                      />
-                    </button>
-                    {productsOpen && categories.length > 0 && (
-                      <div className="absolute top-full left-0 mt-1 w-56 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50">
-                        {categories.map((cat) => (
-                          <a
-                            key={cat.id}
-                            href={path(`/#cat-${cat.slug}`)}
-                            onClick={(e) => {
-                              e.preventDefault();
-                              setProductsOpen(false);
-                              const pn = location.pathname;
-                              if (isHomePath(pn)) {
-                                setTimeout(() => { const el = document.getElementById(`cat-${cat.slug}`); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 100);
-                              } else {
-                                sessionStorage.setItem("scrollToCategory", `cat-${cat.slug}`);
-                                navigate(path("/"));
-                              }
-                            }}
-                            className="flex items-center px-4 py-2.5 text-sm text-gray-700 hover:bg-orange-50 hover:text-[#FF9900] transition-colors"
-                          >
-                            <span className="w-2 h-2 rounded-full bg-[#FF9900] mr-3" />
-                            {cat.name}
-                          </a>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  <Link
-                    to={path("/about")}
-                    className={`flex items-center space-x-1.5 text-sm font-medium px-3 py-2 rounded-lg transition-colors ${
-                      cleanPath === "/about"
-                        ? "text-[#FF9900] bg-orange-50"
-                        : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
-                    }`}
-                  >
-                    <Info className="w-4 h-4" />
-                    <span>{t("about")}</span>
-                  </Link>
-
-                  <Link
-                    to={path("/contact")}
-                    className={`flex items-center space-x-1.5 text-sm font-medium px-3 py-2 rounded-lg transition-colors ${
-                      cleanPath === "/contact"
-                        ? "text-[#FF9900] bg-orange-50"
-                        : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
-                    }`}
-                  >
-                    <MessageSquare className="w-4 h-4" />
-                    <span>{t("contact")}</span>
-                  </Link>
-                </>
+          {/* Country Switcher with flag images */}
+          <div className="relative group flex-shrink-0">
+            <button className="flex items-center gap-1.5 px-2 py-1.5 rounded-sm text-xs" style={{ border: '1px solid transparent' }} onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#fff')} onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'transparent')}>
+              <img src={flagUrl(country)} width={20} height={15} style={{ borderRadius: 2, objectFit: 'cover' }} alt={country} />
+              <span className="uppercase font-medium">{country}</span>
+              <ChevronDown className="w-3 h-3" />
+            </button>
+            <div className="absolute top-full right-0 mt-0 w-48 py-2 hidden group-hover:block" style={{ background: '#fff', borderRadius: '0 0 4px 4px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', zIndex: 1001 }}>
+              {(dbCountries.length > 0 ? dbCountries : []).map((c: any) => (
+                <button key={c.code} onClick={() => switchCountry(c.code as CountryCode)} className="w-full flex items-center gap-2.5 px-4 py-2 text-sm transition-colors" style={{ color: country === c.code ? '#FF9900' : '#0F1111', background: country === c.code ? '#fff7ed' : 'transparent' }} onMouseEnter={(e) => { if (country !== c.code) e.currentTarget.style.background = '#EAEDED'; }} onMouseLeave={(e) => { if (country !== c.code) e.currentTarget.style.background = 'transparent'; }}>
+                  <img src={flagUrl(c.code)} width={20} height={15} style={{ borderRadius: 2, objectFit: 'cover' }} alt={c.code} />
+                  <span>{c.name || c.code.toUpperCase()}</span>
+                </button>
+              ))}
+              {dbCountries.length === 0 && (
+                <p className="px-4 py-2 text-sm text-center" style={{ color: '#999' }}>No active countries</p>
               )}
             </div>
-
-            {/* Right side: Country switcher + Search + Mobile menu */}
-            <div className="flex items-center gap-2">
-              {/* Country Switcher */}
-              <div className="relative group">
-                <button className="flex items-center gap-1 text-sm font-medium px-2 py-1.5 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors">
-                  <span>{dbCountries.find((c: any) => c.code === country)?.flag || countryConfig[country]?.flag || "🌍"}</span>
-                  <span className="uppercase text-xs">{country}</span>
-                  <ChevronDown className="w-3 h-3" />
-                </button>
-                <div className="absolute top-full right-0 mt-1 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50 hidden group-hover:block">
-                  {(dbCountries.length > 0 ? dbCountries : []).map((c: any) => (
-                    <button
-                      key={c.code}
-                      onClick={() => switchCountry(c.code as CountryCode)}
-                      className={`w-full flex items-center gap-2 px-4 py-2 text-sm transition-colors ${
-                        country === c.code ? "text-[#FF9900] bg-orange-50 font-medium" : "text-gray-700 hover:bg-orange-50 hover:text-[#FF9900]"
-                      }`}
-                    >
-                      <span>{c.flag || "🌍"}</span>
-                      <span>{c.name || c.code.toUpperCase()}</span>
-                    </button>
-                  ))}
-                  {dbCountries.length === 0 && (
-                    <p className="px-4 py-2 text-sm text-gray-400 text-center">No active countries</p>
-                  )}
-                </div>
-              </div>
-
-              {/* Desktop Search */}
-              <div className="hidden md:flex items-center">
-                {searchOpen ? (
-                  <form
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      if (searchQuery.trim()) {
-                        navigate(path(`/?search=${encodeURIComponent(searchQuery.trim())}`));
-                      }
-                    }}
-                    className="flex items-center"
-                  >
-                    <input
-                      type="text"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Search products..."
-                      className="w-48 px-3 py-1.5 text-sm border border-gray-200 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-[#FF9900]/20 focus:border-[#FF9900]"
-                      autoFocus
-                      onBlur={() => {
-                        if (!searchQuery) setSearchOpen(false);
-                      }}
-                    />
-                    <button
-                      type="submit"
-                      className="px-3 py-1.5 bg-[#FF9900] hover:bg-[#E68A00] text-white rounded-r-lg transition-colors"
-                    >
-                      <Search className="w-4 h-4" />
-                    </button>
-                  </form>
-                ) : (
-                  <button
-                    onClick={() => setSearchOpen(true)}
-                    className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
-                    aria-label="Search"
-                  >
-                    <Search className="w-5 h-5" />
-                  </button>
-                )}
-              </div>
-
-              {/* Mobile hamburger */}
-              <button
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="md:hidden text-gray-600 hover:text-gray-900 p-2"
-              >
-                {mobileMenuOpen ? (
-                  <X className="w-6 h-6" />
-                ) : (
-                  <Menu className="w-6 h-6" />
-                )}
-              </button>
-            </div>
           </div>
+
+          {/* Mobile hamburger */}
+          <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="md:hidden p-2" style={{ color: '#fff' }}>
+            {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          </button>
         </div>
 
         {/* Mobile menu */}
         {mobileMenuOpen && (
-          <div className="md:hidden bg-white border-t border-gray-100">
-            <div className="px-4 py-3 border-b border-gray-100">
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  if (searchQuery.trim()) {
-                    navigate(`/?search=${encodeURIComponent(searchQuery.trim())}`);
-                    setMobileMenuOpen(false);
-                  }
-                }}
-                className="flex items-center"
-              >
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search products..."
-                  className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-[#FF9900]/20 focus:border-[#FF9900]"
-                />
-                <button
-                  type="submit"
-                  className="px-3 py-2 bg-[#FF9900] hover:bg-[#E68A00] text-white rounded-r-lg transition-colors"
-                >
-                  <Search className="w-4 h-4" />
-                </button>
-              </form>
-            </div>
-            <div className="px-4 py-3 space-y-1">
-              {hasCustomNav ? (
-                navItems
-                  .filter((n) => n.parent_id === 0)
-                  .map((item) => (
-                    <Link
-                      key={item.id}
-                      to={item.link === "/" ? path("/") : item.link === "/about" ? path("/about") : item.link === "/contact" ? path("/contact") : item.link}
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="flex items-center space-x-2 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-50"
-                    >
-                      <span>{item.label}</span>
-                    </Link>
-                  ))
-              ) : (
-                <>
-                  <Link
-                    to={path("/")}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center space-x-2 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-50"
-                  >
-                    <Home className="w-4 h-4" />
-                    <span>{t("home")}</span>
-                  </Link>
-                  {categories.map((cat) => (
-                    <Link
-                      key={cat.id}
-                      to={path(`/category/${cat.slug}`)}
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="flex items-center space-x-2 px-3 py-2 pl-8 rounded-lg text-gray-600 hover:bg-gray-50"
-                    >
-                      <span className="w-1.5 h-1.5 rounded-full bg-[#FF9900]" />
-                      <span>{cat.name}</span>
-                    </Link>
-                  ))}
-                  <Link
-                    to={path("/about")}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center space-x-2 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-50"
-                  >
-                    <Info className="w-4 h-4" />
-                    <span>{t("about")}</span>
-                  </Link>
-                  <Link
-                    to={path("/contact")}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center space-x-2 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-50"
-                  >
-                    <MessageSquare className="w-4 h-4" />
-                    <span>{t("contact")}</span>
-                  </Link>
-                </>
-              )}
+          <div className="md:hidden" style={{ background: '#232f3e', borderTop: '1px solid #37475a' }}>
+            <form onSubmit={(e) => { e.preventDefault(); if (searchQuery.trim()) { navigate(path(`/?search=${encodeURIComponent(searchQuery.trim())}`)); setMobileMenuOpen(false); } }} className="flex items-center px-4 py-3">
+              <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search..." className="flex-1 px-3 py-2 text-sm outline-none rounded-l" />
+              <button type="submit" className="px-3 py-2 rounded-r" style={{ background: '#febd69' }}><Search className="w-4 h-4" /></button>
+            </form>
+            <div className="px-4 py-2 space-y-0.5">
+              <Link to={path("/")} onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm rounded" style={{ color: '#fff' }}><Home className="w-4 h-4" />{t("home")}</Link>
+              {categories.map((cat) => (
+                <a key={cat.id} href={path(`/#cat-${cat.slug}`)} onClick={(e) => { e.preventDefault(); setMobileMenuOpen(false); if (isHomePath(location.pathname)) { setTimeout(() => document.getElementById(`cat-${cat.slug}`)?.scrollIntoView({ behavior: 'smooth' }), 100); } else { sessionStorage.setItem("scrollToCategory", `cat-${cat.slug}`); navigate(path("/")); } }} className="flex items-center gap-2 px-3 py-2 pl-8 text-sm rounded" style={{ color: '#ddd' }}><span className="w-1.5 h-1.5 rounded-full bg-orange-400" />{cat.name}</a>
+              ))}
+              <Link to={path("/about")} onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm rounded" style={{ color: '#fff' }}><Info className="w-4 h-4" />{t("about")}</Link>
+              <Link to={path("/contact")} onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm rounded" style={{ color: '#fff' }}><MessageSquare className="w-4 h-4" />{t("contact")}</Link>
             </div>
           </div>
         )}
-      </nav>
+      </header>
 
-      {/* ===== SUB-NAV: Category Quick Links (sticky) ===== */}
+      {/* ===== GRAY SUB NAV (#232f3e) with Brand Dropdowns ===== */}
       {categories.length > 0 && (
-        <div className="bg-white border-b border-gray-100 hidden md:block sticky top-16 z-40">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center gap-1 py-2 overflow-x-auto scrollbar-hide">
-              <span className="text-xs text-gray-400 font-medium mr-2 flex-shrink-0 uppercase tracking-wider">Categories</span>
-              {categories.map((cat) => (
-                <a
-                  key={cat.id}
-                  href={path(`/#cat-${cat.slug}`)}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    const pn = location.pathname;
-                    if (isHomePath(pn)) {
-                      setTimeout(() => { const el = document.getElementById(`cat-${cat.slug}`); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 100);
-                    } else {
-                      sessionStorage.setItem("scrollToCategory", `cat-${cat.slug}`);
-                      navigate(path("/"));
-                    }
-                  }}
-                  className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-[#FF9900] hover:bg-orange-50 px-3 py-1.5 rounded-full transition-colors whitespace-nowrap flex-shrink-0"
-                >
-                  <span className="w-1.5 h-1.5 rounded-full bg-orange-400" />
-                  {cat.name}
-                </a>
-              ))}
-            </div>
+        <nav className="hidden md:flex items-center gap-0 px-4 text-sm sticky z-40" style={{ background: '#232f3e', height: 40, color: '#fff', top: 60 }}>
+          <div className="max-w-[1500px] mx-auto flex items-center gap-0 w-full">
+            {categories.map((cat) => {
+              const brands = categoryBrands[cat.id] || [];
+              return (
+                <div key={cat.id} className="relative group">
+                  <button className="flex items-center gap-1 px-3 py-1.5 rounded-sm text-sm whitespace-nowrap transition-colors" style={{ border: '1px solid transparent' }} onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#fff')} onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'transparent')}>
+                    {cat.name}
+                    {brands.length > 0 && <ChevronDown className="w-3 h-3 opacity-60" />}
+                  </button>
+                  {brands.length > 0 && (
+                    <div className="absolute top-full left-0 py-2 hidden group-hover:block" style={{ background: '#fff', color: '#0F1111', minWidth: 220, borderRadius: '0 0 4px 4px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', zIndex: 1001 }}>
+                      <div className="px-4 py-1 text-xs font-bold uppercase tracking-wider" style={{ color: '#565959' }}>{cat.name} Brands</div>
+                      {brands.map((brand) => (
+                        <a key={brand.id} href={path(`/#cat-${cat.slug}`)} onClick={(e) => { e.preventDefault(); if (isHomePath(location.pathname)) { setTimeout(() => scrollToBrand(cat.slug, brand.slug), 200); } else { sessionStorage.setItem("scrollToCategory", `cat-${cat.slug}`); sessionStorage.setItem("scrollToBrand", brand.slug); navigate(path("/")); } }} className="block px-4 py-1.5 text-sm transition-colors" style={{ color: '#444' }} onMouseEnter={(e) => { e.currentTarget.style.background = '#EAEDED'; e.currentTarget.style.color = '#e47911'; }} onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#444'; }}>
+                          {brand.name}
+                        </a>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
-        </div>
+        </nav>
       )}
 
       {/* ===== MAIN CONTENT ===== */}
       <main className="flex-1">{children}</main>
 
-      {/* ===== FOOTER ===== */}
-      <footer className="bg-white border-t">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            {/* Brand */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-gradient-to-br from-[#FF9900] to-[#E68A00] rounded-lg flex items-center justify-center">
-                  <ShoppingBag className="w-4 h-4 text-white" />
-                </div>
-                <span className="text-lg font-bold text-gray-900">
-                  {siteTitle}
-                </span>
-              </div>
-              <p className="text-sm text-gray-500 leading-relaxed">
-                {settingsMap["footerAbout"] || t("footerAbout") || "Discover quality products from trusted brands. Shop with confidence."}
-              </p>
-            </div>
-
-            {/* Quick Links */}
-            <div>
-              <h4 className="font-semibold text-gray-900 mb-4">
-                {t("quickLinks") || "Quick Links"}
-              </h4>
-              <ul className="space-y-2 text-sm text-gray-500">
-                <li>
-                  <Link to={path("/")} className="hover:text-[#FF9900] transition-colors">
-                    {t("home")}
-                  </Link>
-                </li>
-                <li>
-                  <Link to={path("/about")} className="hover:text-[#FF9900] transition-colors">
-                    {t("about")}
-                  </Link>
-                </li>
-                <li>
-                  <Link to={path("/contact")} className="hover:text-[#FF9900] transition-colors">
-                    {t("contact")}
-                  </Link>
-                </li>
-              </ul>
-            </div>
-
-            {/* Categories */}
-            <div>
-              <h4 className="font-semibold text-gray-900 mb-4">
-                {t("categories") || "Categories"}
-              </h4>
-              <ul className="space-y-2 text-sm text-gray-500">
-                {categories.slice(0, 6).map((cat) => (
-                  <li key={cat.id}>
-                    <a
-                      href={path(`/#cat-${cat.slug}`)}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        const pn = location.pathname;
-                        if (isHomePath(pn)) {
-                          setTimeout(() => { const el = document.getElementById(`cat-${cat.slug}`); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 100);
-                        } else {
-                          sessionStorage.setItem("scrollToCategory", `cat-${cat.slug}`);
-                          navigate(path("/"));
-                        }
-                      }}
-                      className="hover:text-[#FF9900] transition-colors"
-                    >
-                      {cat.name}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* Newsletter + Admin */}
-            <div>
-              <h4 className="font-semibold text-gray-900 mb-4">
-                Stay Updated
-              </h4>
-              <p className="text-sm text-gray-500 mb-3">
-                Subscribe for new products and deals.
-              </p>
-              <div className="flex gap-2">
-                <input
-                  type="email"
-                  placeholder="Your email"
-                  className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FF9900] focus:border-transparent"
-                  readOnly
-                />
-                <button className="bg-[#FF9900] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#E68A00] transition-colors">
-                  Subscribe
-                </button>
-              </div>
-              {/* Admin entry */}
-              <Link
-                to={path("/admin")}
-                className="inline-flex items-center gap-1.5 text-xs text-gray-400 hover:text-[#FF9900] transition-colors mt-4"
-              >
-                <Shield className="w-3.5 h-3.5" />
-                {t("adminLogin")}
-              </Link>
-            </div>
+      {/* ===== AMAZON-STYLE FOOTER ===== */}
+      <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="w-full text-center text-sm cursor-pointer transition-colors" style={{ background: '#37475a', color: '#fff', padding: '14px' }} onMouseEnter={(e) => (e.currentTarget.style.background = '#485769')} onMouseLeave={(e) => (e.currentTarget.style.background = '#37475a')}>
+        Back to top
+      </button>
+      <footer style={{ background: '#232f3e', color: '#fff', padding: '40px 24px' }}>
+        <div className="max-w-[1000px] mx-auto grid grid-cols-2 md:grid-cols-4 gap-10">
+          <div>
+            <h4 className="font-bold mb-3 text-base">Get to Know Us</h4>
+            <Link to={path("/about")} className="block py-1 text-sm" style={{ color: '#ddd' }} onMouseEnter={(e) => (e.currentTarget.style.textDecoration = 'underline')} onMouseLeave={(e) => (e.currentTarget.style.textDecoration = 'none')}>{t("about")}</Link>
+            <span className="block py-1 text-sm cursor-default" style={{ color: '#ddd' }}>Our Story</span>
+            <span className="block py-1 text-sm cursor-default" style={{ color: '#ddd' }}>Careers</span>
           </div>
-          <div className="border-t mt-8 pt-8 text-center text-sm text-gray-400">
-            &copy; {new Date().getFullYear()} {siteTitle}. {t("copyright") || "All rights reserved."}
+          <div>
+            <h4 className="font-bold mb-3 text-base">Shop With Us</h4>
+            {categories.slice(0, 5).map((cat) => (
+              <a key={cat.id} href={path(`/#cat-${cat.slug}`)} onClick={(e) => { e.preventDefault(); if (isHomePath(location.pathname)) { setTimeout(() => document.getElementById(`cat-${cat.slug}`)?.scrollIntoView({ behavior: 'smooth' }), 100); } else { sessionStorage.setItem("scrollToCategory", `cat-${cat.slug}`); navigate(path("/")); } }} className="block py-1 text-sm" style={{ color: '#ddd' }} onMouseEnter={(e) => (e.currentTarget.style.textDecoration = 'underline')} onMouseLeave={(e) => (e.currentTarget.style.textDecoration = 'none')}>{cat.name}</a>
+            ))}
+          </div>
+          <div>
+            <h4 className="font-bold mb-3 text-base">Customer Service</h4>
+            <Link to={path("/contact")} className="block py-1 text-sm" style={{ color: '#ddd' }} onMouseEnter={(e) => (e.currentTarget.style.textDecoration = 'underline')} onMouseLeave={(e) => (e.currentTarget.style.textDecoration = 'none')}>{t("contact")}</Link>
+            <span className="block py-1 text-sm cursor-default" style={{ color: '#ddd' }}>Shipping Info</span>
+            <span className="block py-1 text-sm cursor-default" style={{ color: '#ddd' }}>Returns</span>
+          </div>
+          <div>
+            <h4 className="font-bold mb-3 text-base">Account</h4>
+            <Link to={path("/admin")} className="flex items-center gap-1.5 py-1 text-sm" style={{ color: '#ddd' }} onMouseEnter={(e) => (e.currentTarget.style.textDecoration = 'underline')} onMouseLeave={(e) => (e.currentTarget.style.textDecoration = 'none')}>
+              <Shield className="w-3.5 h-3.5" />{t("adminLogin")}
+            </Link>
+            {contactEmail && <span className="block py-1 text-sm" style={{ color: '#999' }}>{contactEmail}</span>}
           </div>
         </div>
       </footer>
+      <div className="text-center" style={{ background: '#131921', color: '#aaa', padding: '24px', fontSize: 12 }}>
+        <div style={{ fontSize: 18, fontWeight: 700, color: '#FF9900', marginBottom: 4 }}>{siteTitle}</div>
+        <p>&copy; {new Date().getFullYear()} {siteTitle}. {t("copyright") || "All rights reserved."}</p>
+      </div>
 
       {/* Analytics code injection */}
-      {analyticsCode && (
-        <div dangerouslySetInnerHTML={{ __html: analyticsCode }} />
-      )}
+      {analyticsCode && <div dangerouslySetInnerHTML={{ __html: analyticsCode }} />}
     </div>
   );
 }
