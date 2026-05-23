@@ -136,6 +136,41 @@ export default function Layout({ children }: { children: ReactNode }) {
     loadData();
   }, [country]);
 
+  // Dynamically inject analytics scripts when analyticsCode changes
+  // Note: React dangerouslySetInnerHTML does NOT execute <script> tags,
+  // so we must use document.createElement instead.
+  useEffect(() => {
+    if (!analyticsCode || analyticsCode.trim().length === 0) return;
+    // Prevent double-injection
+    if ((window as any).__analyticsInjected) return;
+    // Extract gtag ID from code
+    const gtagMatch = analyticsCode.match(/gtag\('config',\s*['"](G-[A-Z0-9]+)['"]\)/);
+    const gtagId = gtagMatch ? gtagMatch[1] : null;
+    if (gtagId) {
+      // Check if already loaded
+      if (document.querySelector(`script[data-gtag="${gtagId}"]`)) return;
+      // Load gtag.js
+      const script = document.createElement('script');
+      script.async = true;
+      script.src = `https://www.googletagmanager.com/gtag/js?id=${gtagId}`;
+      script.setAttribute('data-gtag', gtagId);
+      document.head.appendChild(script);
+      // Initialize gtag
+      const inline = document.createElement('script');
+      inline.textContent = `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${gtagId}');`;
+      document.head.appendChild(inline);
+      (window as any).__analyticsInjected = true;
+      console.log('[Analytics] gtag.js injected for', gtagId);
+    } else {
+      // Fallback: inject raw code as inline script
+      const inline = document.createElement('script');
+      inline.textContent = analyticsCode;
+      document.head.appendChild(inline);
+      (window as any).__analyticsInjected = true;
+      console.log('[Analytics] Inline code injected');
+    }
+  }, [analyticsCode]);
+
   const siteTitle = settingsMap["siteTitle"] || "iDaPro";
   const contactEmail = settingsMap["contactEmail"] || "";
   const logoImage = settingsMap["logoImage"] || "";
@@ -329,8 +364,7 @@ export default function Layout({ children }: { children: ReactNode }) {
         </div>
       </div>
 
-      {/* Analytics code injection */}
-      {analyticsCode && <div dangerouslySetInnerHTML={{ __html: analyticsCode }} />}
+      {/* Analytics code is injected via useEffect below */}
     </div>
   );
 }
