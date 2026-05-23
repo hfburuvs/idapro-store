@@ -2146,4 +2146,6 @@ function parseCSVLine(line: string): string[] {
     } else if (char === ',' && !inQuotes) { result.push(current.trim()); current = ""; }
     else { current += char; }
   }
-  result.pu
+  result.push(current.trim());
+  return result.map((v) => v.replace(/^"|"$/g, ""));
+}
