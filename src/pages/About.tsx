@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Shield, Eye, Smartphone, Award, Users, Zap, Video, ChevronLeft, ChevronRight } from "lucide-react";
+import { Shield, Eye, Smartphone, Award, Users, Zap, ChevronLeft, ChevronRight, Play } from "lucide-react";
 import { Link } from "react-router";
 import { useCountry } from "@/hooks/useCountry";
 import { supabase } from "@/lib/supabase";
@@ -12,7 +12,7 @@ interface VideoItem {
 }
 
 function getYouTubeEmbedUrl(url: string): string | null {
-  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+  const regExp = /^.*(youtu\.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
   const match = url.match(regExp);
   return match && match[2].length === 11 ? `https://www.youtube.com/embed/${match[2]}` : null;
 }
@@ -39,10 +39,7 @@ export default function About() {
     load();
   }, []);
 
-  const c = (key: string) => {
-    if (country === "us") return settingsMap[key] || t(key);
-    return t(key);
-  };
+  const c = (key: string) => settingsMap[key] || t(key);
 
   const features = [
     { icon: Shield, titleKey: "aboutFeature1", descKey: "aboutFeature1Desc" },
@@ -55,37 +52,46 @@ export default function About() {
 
   return (
     <div>
-      {/* Hero Banner */}
-      <section className="hero-pattern py-16 md:py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <div className="inline-flex items-center gap-2 bg-orange-100 text-orange-700 px-4 py-1.5 rounded-full text-sm font-medium mb-6">
-            <span className="w-2 h-2 bg-[#FF9900] rounded-full animate-pulse" />
+      {/* Hero — Amazon dark style */}
+      <section style={{ background: '#131921', color: '#fff', padding: '48px 24px' }}>
+        <div className="max-w-[1300px] mx-auto text-center">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold mb-5" style={{ background: 'rgba(255,153,0,0.15)', color: '#FF9900' }}>
+            <span className="w-2 h-2 rounded-full animate-pulse" style={{ background: '#FF9900' }} />
             {t("aboutUs")}
           </div>
-          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4 leading-tight">
-            {c("aboutTitle")} <span className="text-[#FF9900]">iDaPro</span>
+          <h1 className="text-3xl md:text-5xl font-bold mb-4 leading-tight">
+            {c("aboutTitle")} <span style={{ color: '#FF9900' }}>iDaPro</span>
           </h1>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto leading-relaxed">
+          <p className="text-base max-w-2xl mx-auto leading-relaxed" style={{ color: '#ccc' }}>
             {c("aboutHero")}
           </p>
         </div>
       </section>
 
-      {/* Brand Story */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+      {/* Brand Story + Video */}
+      <section className="max-w-[1300px] mx-auto px-4 sm:px-6 py-12 md:py-16">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
           <div>
-            <h2 className="text-3xl font-bold text-gray-900 mb-6">
-              {c("aboutSubtitle")} <span className="text-[#FF9900]">9H Films</span>
+            <h2 className="text-2xl font-bold mb-4" style={{ color: '#0F1111' }}>
+              {c("aboutSubtitle")} <span style={{ color: '#FF9900' }}>9H Films</span>
             </h2>
-            <div className="space-y-4 text-gray-600 leading-relaxed">
+            <div className="space-y-3 text-sm leading-relaxed" style={{ color: '#565959' }}>
               <p>{c("aboutStory")}</p>
             </div>
+            <div className="flex gap-3 mt-6 flex-wrap">
+              <Link to={path("/")} className="inline-block px-6 py-2.5 rounded-md text-sm font-semibold" style={{ background: 'linear-gradient(180deg, #ffd472, #f3a847)', color: '#0F1111', border: '1px solid #a88734' }}>
+                {t("aboutShopNow")}
+              </Link>
+              <Link to={path("/contact")} className="inline-block px-6 py-2.5 rounded-md text-sm font-semibold bg-white" style={{ color: '#0F1111', border: '1px solid #d5d9d9' }}>
+                {t("contactTitle")}
+              </Link>
+            </div>
           </div>
-          <div className="bg-gradient-to-br from-[#FF9900]/10 to-orange-100 rounded-2xl p-6 text-center relative overflow-hidden">
+          {/* Video Player */}
+          <div className="bg-white rounded-xl p-3" style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
             {videos.length > 0 ? (
-              <div className="relative">
-                <div className="aspect-video rounded-xl overflow-hidden bg-black">
+              <div>
+                <div className="aspect-video rounded-lg overflow-hidden bg-black">
                   {videos.map((v, i) => {
                     const embedUrl = getYouTubeEmbedUrl(v.video_url);
                     return (
@@ -100,48 +106,40 @@ export default function About() {
                   })}
                 </div>
                 {videos.length > 1 && (
-                  <>
-                    <div className="flex justify-between items-center mt-3">
-                      <button onClick={() => setCurrentVideo((p) => (p - 1 + videos.length) % videos.length)} className="w-8 h-8 bg-white/80 hover:bg-white rounded-full flex items-center justify-center shadow transition-all"><ChevronLeft className="w-4 h-4 text-gray-700" /></button>
-                      <p className="text-sm text-gray-600 font-medium">{videos[currentVideo]?.title}</p>
-                      <button onClick={() => setCurrentVideo((p) => (p + 1) % videos.length)} className="w-8 h-8 bg-white/80 hover:bg-white rounded-full flex items-center justify-center shadow transition-all"><ChevronRight className="w-4 h-4 text-gray-700" /></button>
-                    </div>
-                    <div className="flex justify-center gap-1.5 mt-2">
-                      {videos.map((_, i) => (
-                        <button key={i} onClick={() => setCurrentVideo(i)} className={`w-2 h-2 rounded-full transition-all ${i === currentVideo ? 'bg-[#FF9900] w-4' : 'bg-gray-300'}`} />
-                      ))}
-                    </div>
-                  </>
+                  <div className="flex items-center justify-between mt-3 px-1">
+                    <button onClick={() => setCurrentVideo(p => (p - 1 + videos.length) % videos.length)} className="w-7 h-7 flex items-center justify-center rounded-full" style={{ background: '#EAEDED' }}><ChevronLeft className="w-4 h-4" /></button>
+                    <p className="text-xs font-medium truncate max-w-[200px]" style={{ color: '#565959' }}>{videos[currentVideo]?.title}</p>
+                    <button onClick={() => setCurrentVideo(p => (p + 1) % videos.length)} className="w-7 h-7 flex items-center justify-center rounded-full" style={{ background: '#EAEDED' }}><ChevronRight className="w-4 h-4" /></button>
+                  </div>
+                )}
+                {videos.length > 1 && (
+                  <div className="flex justify-center gap-1 mt-2">
+                    {videos.map((_, i) => <button key={i} onClick={() => setCurrentVideo(i)} className="h-1.5 rounded-full transition-all" style={{ width: i === currentVideo ? 16 : 6, background: i === currentVideo ? '#FF9900' : '#ddd' }} />)}
+                  </div>
                 )}
               </div>
             ) : (
-              <>
-                <div className="text-6xl font-black text-[#FF9900] mb-2">iDaPro</div>
-                <div className="text-xl font-bold text-gray-900 mb-4">Precision Armor</div>
-                <div className="text-lg text-gray-600 italic">Unstoppable Clarity</div>
-                <div className="mt-6 flex justify-center gap-4">
-                  <Shield className="w-8 h-8 text-[#FF9900]" />
-                  <Eye className="w-8 h-8 text-[#FF9900]" />
-                  <Smartphone className="w-8 h-8 text-[#FF9900]" />
-                </div>
-              </>
+              <div className="aspect-video rounded-lg flex flex-col items-center justify-center" style={{ background: '#f7f8f8' }}>
+                <Play className="w-12 h-12 mb-3" style={{ color: '#ccc' }} />
+                <p className="text-sm" style={{ color: '#999' }}>No videos yet</p>
+              </div>
             )}
           </div>
         </div>
       </section>
 
       {/* Features */}
-      <section className="bg-gray-50 py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-bold text-center text-gray-900 mb-12">
+      <section style={{ background: '#fff', padding: '48px 24px' }}>
+        <div className="max-w-[1300px] mx-auto">
+          <h2 className="text-2xl font-bold text-center mb-10" style={{ color: '#0F1111' }}>
             {c("aboutWhyTitle")}
           </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {features.map((f, i) => (
-              <div key={i} className="bg-white rounded-xl border border-black/[0.08] p-6 hover:shadow-md transition-shadow">
-                <f.icon className="w-10 h-10 text-[#FF9900] mb-4" />
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">{t(f.titleKey)}</h3>
-                <p className="text-sm text-gray-500 leading-relaxed">{t(f.descKey)}</p>
+              <div key={i} className="bg-white rounded-lg p-5 transition-all" style={{ border: '1px solid #eee' }}>
+                <f.icon className="w-8 h-8 mb-3" style={{ color: '#FF9900' }} />
+                <h3 className="text-base font-semibold mb-1.5" style={{ color: '#0F1111' }}>{t(f.titleKey)}</h3>
+                <p className="text-sm leading-relaxed" style={{ color: '#565959' }}>{t(f.descKey)}</p>
               </div>
             ))}
           </div>
@@ -149,25 +147,25 @@ export default function About() {
       </section>
 
       {/* Commitment */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <h2 className="text-3xl font-bold text-center text-gray-900 mb-12">
+      <section className="max-w-[1300px] mx-auto px-4 sm:px-6 py-12 md:py-16">
+        <h2 className="text-2xl font-bold text-center mb-8" style={{ color: '#0F1111' }}>
           {c("aboutCommitment")}
         </h2>
-        <div className="max-w-3xl mx-auto text-gray-600 leading-relaxed text-center">
+        <div className="max-w-2xl mx-auto text-sm leading-relaxed text-center" style={{ color: '#565959' }}>
           <p>{c("aboutCommitmentText")}</p>
         </div>
       </section>
 
       {/* CTA */}
-      <section className="hero-pattern py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl font-bold text-gray-900 mb-4">
+      <section style={{ background: '#f7f8f8', padding: '48px 24px' }}>
+        <div className="max-w-[1300px] mx-auto text-center">
+          <h2 className="text-2xl font-bold mb-3" style={{ color: '#0F1111' }}>
             {c("aboutCTA")}
           </h2>
-          <p className="text-gray-600 mb-8 max-w-xl mx-auto leading-relaxed">
+          <p className="text-sm mb-6 max-w-lg mx-auto" style={{ color: '#565959' }}>
             {c("aboutCTADesc")}
           </p>
-          <Link to={path("/")} className="btn-primary text-white text-lg font-semibold py-3 px-8 rounded-full transition-all inline-block">
+          <Link to={path("/")} className="inline-block px-8 py-3 rounded-md text-sm font-semibold" style={{ background: 'linear-gradient(180deg, #ffd472, #f3a847)', color: '#0F1111', border: '1px solid #a88734' }}>
             {t("aboutShopNow")}
           </Link>
         </div>

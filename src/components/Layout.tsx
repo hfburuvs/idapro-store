@@ -123,8 +123,13 @@ export default function Layout({ children }: { children: ReactNode }) {
   const siteTagline = settingsMap["siteTagline"] || "";
   const pageTitle = cleanPath === "/" ? (siteTagline ? `${siteTitle} - ${siteTagline}` : siteTitle) : cleanPath === "/contact" ? `${t("contact")} - ${siteTitle}` : cleanPath === "/about" ? `${t("about")} - ${siteTitle}` : cleanPath.startsWith("/product/") ? `${t("products")} - ${siteTitle}` : cleanPath.startsWith("/category/") ? `${t("categories")} - ${siteTitle}` : siteTitle;
 
-  // Country flag image URL from flagcdn
-  const flagUrl = (code: string) => `https://flagcdn.com/w40/${code?.toLowerCase()}.png`;
+  // Country flag image URL from flagcdn (uses ISO 3166-1 alpha-2 codes)
+  // Note: UK uses 'gb' as ISO code, so we map internal codes to ISO codes
+  const flagUrl = (code: string) => {
+    const isoMap: Record<string, string> = { uk: 'gb' };
+    const isoCode = isoMap[code?.toLowerCase()] || code?.toLowerCase();
+    return `https://flagcdn.com/w40/${isoCode}.png`;
+  };
 
   // Scroll to brand within a category
   const scrollToBrand = (catSlug: string, brandSlug: string) => {

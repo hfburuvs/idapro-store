@@ -1,5 +1,5 @@
 import { supabase } from "@/lib/supabase";
-import { Mail, User, MessageSquare, Send, Check, AlertCircle } from "lucide-react";
+import { Mail, User, MessageSquare, Send, Check, AlertCircle, Clock, Briefcase } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useCountry } from "@/hooks/useCountry";
 
@@ -44,104 +44,104 @@ export default function Contact() {
     finally { setSending(false); }
   };
 
+  const infoItems = [
+    ...(contactEmail ? [{ icon: Mail, label: "Email", value: contactEmail }] : []),
+    { icon: Clock, label: t("contactResponseTime"), value: t("contactResponseValue") },
+    { icon: Briefcase, label: t("contactBusinessHours"), value: t("contactBusinessValue") },
+  ];
+
   return (
     <div>
-      {/* Hero Banner */}
-      <section className="hero-pattern py-16 md:py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">{t("contactTitle")}</h1>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">{t("contactSubtitle")}</p>
+      {/* Hero — Amazon dark style */}
+      <section style={{ background: '#131921', color: '#fff', padding: '48px 24px' }}>
+        <div className="max-w-[1300px] mx-auto text-center">
+          <h1 className="text-3xl md:text-5xl font-bold mb-3">{t("contactTitle")}</h1>
+          <p className="text-base max-w-2xl mx-auto" style={{ color: '#ccc' }}>{t("contactSubtitle")}</p>
         </div>
       </section>
 
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-          <div className="space-y-8">
+      <main className="max-w-[1300px] mx-auto px-4 sm:px-6 py-10">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+          {/* Left: Contact Info */}
+          <div className="lg:col-span-2 space-y-6">
             <div>
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">{t("contactInfo")}</h2>
-              <p className="text-sm text-gray-500 mb-6 leading-relaxed">{t("contactInfoDesc")}</p>
-              <div className="space-y-4">
-                {contactEmail && (
-                  <div className="flex items-start space-x-3">
-                    <div className="w-10 h-10 bg-[#FF9900]/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <Mail className="w-5 h-5 text-[#FF9900]" />
+              <h2 className="text-lg font-bold mb-4" style={{ color: '#0F1111' }}>{t("contactInfo")}</h2>
+              <p className="text-sm mb-5 leading-relaxed" style={{ color: '#565959' }}>{t("contactInfoDesc")}</p>
+              <div className="space-y-3">
+                {infoItems.map((item, i) => (
+                  <div key={i} className="flex items-start gap-3 p-3 rounded-lg" style={{ background: '#fff', border: '1px solid #eee' }}>
+                    <div className="w-9 h-9 rounded-md flex items-center justify-center flex-shrink-0" style={{ background: '#131921' }}>
+                      <item.icon className="w-4 h-4" style={{ color: '#FF9900' }} />
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-gray-900">Email</p>
-                      <p className="text-sm text-gray-500">{contactEmail}</p>
+                      <p className="text-sm font-semibold" style={{ color: '#0F1111' }}>{item.label}</p>
+                      <p className="text-xs" style={{ color: '#565959' }}>{item.value}</p>
                     </div>
                   </div>
-                )}
-                <div className="flex items-start space-x-3">
-                  <div className="w-10 h-10 bg-[#FF9900]/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <MessageSquare className="w-5 h-5 text-[#FF9900]" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">{t("contactResponseTime")}</p>
-                    <p className="text-sm text-gray-500">{t("contactResponseValue")}</p>
-                  </div>
-                </div>
-                <div className="flex items-start space-x-3">
-                  <div className="w-10 h-10 bg-[#FF9900]/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <User className="w-5 h-5 text-[#FF9900]" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">{t("contactBusinessHours")}</p>
-                    <p className="text-sm text-gray-500">{t("contactBusinessValue")}</p>
-                  </div>
-                </div>
+                ))}
               </div>
             </div>
-            <div className="bg-gray-50 rounded-xl p-6">
-              <h3 className="font-semibold text-gray-900 mb-4">{t("contactFAQ")}</h3>
-              <div className="space-y-3">
+            {/* FAQ */}
+            <div className="bg-white rounded-lg p-5" style={{ border: '1px solid #eee' }}>
+              <h3 className="font-bold mb-3 text-sm" style={{ color: '#0F1111' }}>{t("contactFAQ")}</h3>
+              <div className="space-y-2">
                 {[1,2,3].map(i => (
                   <details key={i} className="group">
-                    <summary className="flex items-center justify-between text-sm font-medium text-gray-700 cursor-pointer">
+                    <summary className="flex items-center justify-between text-sm py-2 cursor-pointer" style={{ color: '#0F1111' }}>
                       {t(`contactFAQ${i}Q` as any)}
-                      <svg className="w-4 h-4 transition group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                      <svg className="w-3.5 h-3.5 transition group-open:rotate-180" style={{ color: '#999' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                     </summary>
-                    <p className="mt-2 text-sm text-gray-500">{t(`contactFAQ${i}A` as any)}</p>
+                    <p className="pb-2 text-xs" style={{ color: '#565959' }}>{t(`contactFAQ${i}A` as any)}</p>
                   </details>
                 ))}
               </div>
             </div>
           </div>
-          <div className="bg-white rounded-xl border border-gray-100 p-6 md:p-8">
-            {submitted ? (
-              <div className="text-center py-12">
-                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Check className="w-8 h-8 text-green-600" />
+
+          {/* Right: Form */}
+          <div className="lg:col-span-3">
+            <div className="bg-white rounded-lg p-6" style={{ border: '1px solid #eee' }}>
+              {submitted ? (
+                <div className="text-center py-12">
+                  <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4" style={{ background: '#ecfdf5' }}>
+                    <Check className="w-7 h-7" style={{ color: '#16a34a' }} />
+                  </div>
+                  <h3 className="text-lg font-bold mb-2" style={{ color: '#0F1111' }}>{t("contactSuccessTitle")}</h3>
+                  <p className="text-sm mb-5" style={{ color: '#565959' }}>{t("contactSuccessDesc")}</p>
+                  <button onClick={() => setSubmitted(false)} className="text-sm font-medium" style={{ color: '#FF9900' }}>{t("contactSendAnother")}</button>
                 </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">{t("contactSuccessTitle")}</h3>
-                <p className="text-sm text-gray-500 mb-6">{t("contactSuccessDesc")}</p>
-                <button onClick={() => setSubmitted(false)} className="text-[#FF9900] hover:underline text-sm font-medium">{t("contactSendAnother")}</button>
-              </div>
-            ) : (
-              <form onSubmit={handleSubmit} className="space-y-5">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">{t("contactFormTitle")}</h2>
-                {error && <div className="flex items-center space-x-2 text-red-600 bg-red-50 p-3 rounded-lg text-sm"><AlertCircle className="w-4 h-4 flex-shrink-0" /><span>{error}</span></div>}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">{t("contactNameLabel")}</label>
-                  <input type="text" value={name} onChange={e => setName(e.target.value)} className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF9900]/20 focus:border-[#FF9900] text-sm" placeholder={t("contactNamePlaceholder")} />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">{t("contactEmailLabel")}</label>
-                  <input type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF9900]/20 focus:border-[#FF9900] text-sm" placeholder={t("contactEmailPlaceholder")} />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">{t("contactMessageLabel")}</label>
-                  <textarea value={content} onChange={e => setContent(e.target.value)} rows={5} className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF9900]/20 focus:border-[#FF9900] text-sm resize-none" placeholder={t("contactMessagePlaceholder")} />
-                </div>
-                <label className="flex items-center space-x-2 cursor-pointer">
-                  <input type="checkbox" checked={subscribe} onChange={e => setSubscribe(e.target.checked)} className="w-4 h-4 rounded border-gray-300 text-[#FF9900] focus:ring-[#FF9900]/20" />
-                  <span className="text-sm text-gray-600">{t("contactSubscribe")}</span>
-                </label>
-                <button type="submit" disabled={sending} className="w-full py-2.5 bg-[#FF9900] hover:bg-[#E68A00] text-white font-medium rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
-                  <Send className="w-4 h-4" /><span>{sending ? t("contactSending") : t("contactSend")}</span>
-                </button>
-              </form>
-            )}
+              ) : (
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <h2 className="text-lg font-bold mb-2" style={{ color: '#0F1111' }}>{t("contactFormTitle")}</h2>
+                  {error && <div className="flex items-center gap-2 p-3 rounded-lg text-sm" style={{ color: '#dc2626', background: '#fef2f2' }}><AlertCircle className="w-4 h-4 flex-shrink-0" /><span>{error}</span></div>}
+                  <div>
+                    <label className="block text-sm font-medium mb-1.5" style={{ color: '#0F1111' }}>{t("contactNameLabel")}</label>
+                    <input type="text" value={name} onChange={e => setName(e.target.value)} className="w-full px-3 py-2.5 border rounded-md text-sm outline-none focus:ring-2" style={{ borderColor: '#d5d9d9' }} placeholder={t("contactNamePlaceholder")}
+                      onFocus={(e) => { e.currentTarget.style.borderColor = '#FF9900'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(255,153,0,0.15)'; }}
+                      onBlur={(e) => { e.currentTarget.style.borderColor = '#d5d9d9'; e.currentTarget.style.boxShadow = 'none'; }} />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1.5" style={{ color: '#0F1111' }}>{t("contactEmailLabel")}</label>
+                    <input type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full px-3 py-2.5 border rounded-md text-sm outline-none" style={{ borderColor: '#d5d9d9' }} placeholder={t("contactEmailPlaceholder")}
+                      onFocus={(e) => { e.currentTarget.style.borderColor = '#FF9900'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(255,153,0,0.15)'; }}
+                      onBlur={(e) => { e.currentTarget.style.borderColor = '#d5d9d9'; e.currentTarget.style.boxShadow = 'none'; }} />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1.5" style={{ color: '#0F1111' }}>{t("contactMessageLabel")}</label>
+                    <textarea value={content} onChange={e => setContent(e.target.value)} rows={5} className="w-full px-3 py-2.5 border rounded-md text-sm outline-none resize-none" style={{ borderColor: '#d5d9d9' }} placeholder={t("contactMessagePlaceholder")}
+                      onFocus={(e) => { e.currentTarget.style.borderColor = '#FF9900'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(255,153,0,0.15)'; }}
+                      onBlur={(e) => { e.currentTarget.style.borderColor = '#d5d9d9'; e.currentTarget.style.boxShadow = 'none'; }} />
+                  </div>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={subscribe} onChange={e => setSubscribe(e.target.checked)} className="w-4 h-4 rounded" style={{ accentColor: '#FF9900' }} />
+                    <span className="text-sm" style={{ color: '#565959' }}>{t("contactSubscribe")}</span>
+                  </label>
+                  <button type="submit" disabled={sending} className="w-full py-2.5 rounded-md text-sm font-semibold transition-all disabled:opacity-50 flex items-center justify-center gap-2" style={{ background: 'linear-gradient(180deg, #ffd472, #f3a847)', color: '#0F1111', border: '1px solid #a88734' }}>
+                    <Send className="w-4 h-4" /><span>{sending ? t("contactSending") : t("contactSend")}</span>
+                  </button>
+                </form>
+              )}
+            </div>
           </div>
         </div>
       </main>
