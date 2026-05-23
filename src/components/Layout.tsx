@@ -296,9 +296,6 @@ export default function Layout({ children }: { children: ReactNode }) {
           </div>
           <div>
             <h4 className="font-bold mb-3 text-base">Account</h4>
-            <Link to={path("/admin")} className="flex items-center gap-1.5 py-1 text-sm" style={{ color: '#ddd' }} onMouseEnter={(e) => (e.currentTarget.style.textDecoration = 'underline')} onMouseLeave={(e) => (e.currentTarget.style.textDecoration = 'none')}>
-              <Shield className="w-3.5 h-3.5" />{t("adminLogin")}
-            </Link>
             {contactEmail && <span className="block py-1 text-sm" style={{ color: '#999' }}>{contactEmail}</span>}
           </div>
         </div>
