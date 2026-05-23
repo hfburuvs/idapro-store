@@ -137,7 +137,7 @@ export default function Home() {
     return (
       <div>
         <section style={{ background: '#131921', color: '#fff' }}>
-          <div className="max-w-[1300px] mx-auto px-4 sm:px-6 py-6">
+          <div className="max-w-[1500px] mx-auto px-4 sm:px-6 py-6">
             <div className="flex items-center justify-between">
               <div>
                 <h1 className="text-xl font-bold mb-1">{t("searchBtn")}: &quot;<span style={{ color: '#FF9900' }}>{searchQuery}</span>&quot;</h1>
@@ -147,7 +147,7 @@ export default function Home() {
             </div>
           </div>
         </section>
-        <main className="max-w-[1300px] mx-auto px-4 sm:px-6 py-8">
+        <main className="max-w-[1500px] mx-auto px-4 sm:px-6 py-8">
           {searchLoading ? (
             <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))' }}>
               {[1,2,3,4,5,6].map(i => <div key={i} className="bg-white rounded-lg h-72 animate-pulse" />)}
@@ -168,7 +168,7 @@ export default function Home() {
     <div>
       {/* Hero */}
       <section style={{ background: 'linear-gradient(135deg, #f7f8f8 0%, #e8e8e8 50%, #f0f1f1 100%)', padding: '40px 24px' }}>
-        <div className="max-w-[1300px] mx-auto flex flex-col lg:flex-row items-center gap-10">
+        <div className="max-w-[1500px] mx-auto flex flex-col lg:flex-row items-center gap-10">
           <div className="flex-1 space-y-5 text-center lg:text-left">
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold" style={{ background: '#131921', color: '#fff', letterSpacing: 0.3 }}>
               <span className="w-2 h-2 rounded-full animate-pulse" style={{ background: '#FF9900' }} />
@@ -211,7 +211,7 @@ export default function Home() {
       </section>
 
       {/* Category Sections with Product Grid */}
-      <div id="products" className="max-w-[1300px] mx-auto px-4 sm:px-6 py-8 space-y-6">
+      <div id="products" className="max-w-[1500px] mx-auto px-4 sm:px-6 py-8 space-y-6">
         {loading ? (
           <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))' }}>
             {[1,2,3,4,5,6].map(i => <div key={i} className="bg-white rounded-lg h-72 animate-pulse" />)}

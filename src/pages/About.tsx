@@ -54,7 +54,7 @@ export default function About() {
     <div>
       {/* Hero — Amazon dark style */}
       <section style={{ background: '#131921', color: '#fff', padding: '48px 24px' }}>
-        <div className="max-w-[1300px] mx-auto text-center">
+        <div className="max-w-[1500px] mx-auto text-center">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold mb-5" style={{ background: 'rgba(255,153,0,0.15)', color: '#FF9900' }}>
             <span className="w-2 h-2 rounded-full animate-pulse" style={{ background: '#FF9900' }} />
             {t("aboutUs")}
@@ -69,7 +69,7 @@ export default function About() {
       </section>
 
       {/* Brand Story + Video */}
-      <section className="max-w-[1300px] mx-auto px-4 sm:px-6 py-12 md:py-16">
+      <section className="max-w-[1500px] mx-auto px-4 sm:px-6 py-12 md:py-16">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
           <div>
             <h2 className="text-2xl font-bold mb-4" style={{ color: '#0F1111' }}>
@@ -130,7 +130,7 @@ export default function About() {
 
       {/* Features */}
       <section style={{ background: '#fff', padding: '48px 24px' }}>
-        <div className="max-w-[1300px] mx-auto">
+        <div className="max-w-[1500px] mx-auto">
           <h2 className="text-2xl font-bold text-center mb-10" style={{ color: '#0F1111' }}>
             {c("aboutWhyTitle")}
           </h2>
@@ -147,7 +147,7 @@ export default function About() {
       </section>
 
       {/* Commitment */}
-      <section className="max-w-[1300px] mx-auto px-4 sm:px-6 py-12 md:py-16">
+      <section className="max-w-[1500px] mx-auto px-4 sm:px-6 py-12 md:py-16">
         <h2 className="text-2xl font-bold text-center mb-8" style={{ color: '#0F1111' }}>
           {c("aboutCommitment")}
         </h2>
@@ -158,7 +158,7 @@ export default function About() {
 
       {/* CTA */}
       <section style={{ background: '#f7f8f8', padding: '48px 24px' }}>
-        <div className="max-w-[1300px] mx-auto text-center">
+        <div className="max-w-[1500px] mx-auto text-center">
           <h2 className="text-2xl font-bold mb-3" style={{ color: '#0F1111' }}>
             {c("aboutCTA")}
           </h2>

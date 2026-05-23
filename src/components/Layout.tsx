@@ -155,7 +155,7 @@ export default function Layout({ children }: { children: ReactNode }) {
           {/* Logo */}
           <Link to={path("/")} className="flex items-center flex-shrink-0 px-2 py-1 rounded-sm" style={{ border: '1px solid transparent' }} onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#fff')} onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'transparent')}>
             {logoImage ? (
-              <img src={logoImage} alt={siteTitle} style={{ height: 36 }} />
+              <img src={logoImage} alt={siteTitle} style={{ height: 36, width: 'auto' }} />
             ) : (
               <span style={{ fontSize: 24, fontWeight: 700, color: '#FF9900', letterSpacing: -0.5 }}>iDaPro</span>
             )}
@@ -175,7 +175,7 @@ export default function Layout({ children }: { children: ReactNode }) {
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search iDaPro"
               className="flex-1 px-3 text-sm outline-none border-none"
-              style={{ borderRadius: '4px 0 0 4px', fontSize: 15 }}
+              style={{ borderRadius: '4px 0 0 4px', fontSize: 15, color: '#0F1111' }}
             />
             <button type="submit" className="flex items-center justify-center transition-colors" style={{ width: 45, background: '#febd69' }} onMouseEnter={(e) => (e.currentTarget.style.background = '#f3a847')} onMouseLeave={(e) => (e.currentTarget.style.background = '#febd69')}>
               <Search className="w-5 h-5" style={{ color: '#131921' }} />
