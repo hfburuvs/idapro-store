@@ -211,7 +211,7 @@ function ProductsTab() {
     setLoading(true); setError("");
     try {
       const [{ data: p }, { data: c }, { data: b }, { data: co }] = await Promise.all([
-        supabase.from("products").select("*").order("sort_order", { ascending: true }).order("id", { ascending: true }).limit(500),
+        supabase.from("products").select("*").order("sort_order", { ascending: true }).order("id", { ascending: true }),
         supabase.from("categories").select("*"),
         supabase.from("brands").select("*"),
         supabase.from("countries").select("*").eq("is_active", true).order("sort_order"),
