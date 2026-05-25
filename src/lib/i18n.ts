@@ -10,6 +10,8 @@ export const DEFAULT_COUNTRY: CountryCode = "us";
 
 export const VALID_COUNTRIES: CountryCode[] = ["us", "uk", "de", "es", "it", "fr"];
 
+export const BASE_COUNTRIES: CountryCode[] = ["us", "uk", "de", "es", "it", "fr"];
+
 export const countryConfig: Record<CountryCode, { flag: string; name: string; domain: string; currency: string; locale: string }> = {
   us: { flag: "🇺🇸", name: "United States", domain: "amazon.com", currency: "$", locale: "en-US" },
   uk: { flag: "🇬🇧", name: "United Kingdom", domain: "amazon.co.uk", currency: "£", locale: "en-GB" },
