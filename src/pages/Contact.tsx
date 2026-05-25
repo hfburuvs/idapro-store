@@ -54,8 +54,8 @@ export default function Contact() {
 
   const infoItems = [
     ...(contactEmail ? [{ icon: Mail, label: "Email", value: contactEmail }] : []),
-    { icon: Clock, label: t("contactResponseTime"), value: t("contactResponseValue") },
-    { icon: Briefcase, label: t("contactBusinessHours"), value: t("contactBusinessValue") },
+    { icon: Clock, label: c("contactResponseTime"), value: c("contactResponseValue") },
+    { icon: Briefcase, label: c("contactBusinessHours"), value: c("contactBusinessValue") },
   ];
 
   return (
@@ -123,29 +123,29 @@ export default function Contact() {
                   <h2 className="text-lg font-bold mb-2" style={{ color: '#0F1111' }}>{c("contactFormTitle")}</h2>
                   {error && <div className="flex items-center gap-2 p-3 rounded-lg text-sm" style={{ color: '#dc2626', background: '#fef2f2' }}><AlertCircle className="w-4 h-4 flex-shrink-0" /><span>{error}</span></div>}
                   <div>
-                    <label className="block text-sm font-medium mb-1.5" style={{ color: '#0F1111' }}>{t("contactNameLabel")}</label>
-                    <input type="text" value={name} onChange={e => setName(e.target.value)} className="w-full px-3 py-2.5 border rounded-md text-sm outline-none focus:ring-2" style={{ borderColor: '#d5d9d9' }} placeholder={t("contactNamePlaceholder")}
+                    <label className="block text-sm font-medium mb-1.5" style={{ color: '#0F1111' }}>{c("contactNameLabel")}</label>
+                    <input type="text" value={name} onChange={e => setName(e.target.value)} className="w-full px-3 py-2.5 border rounded-md text-sm outline-none focus:ring-2" style={{ borderColor: '#d5d9d9' }} placeholder={c("contactNamePlaceholder")}
                       onFocus={(e) => { e.currentTarget.style.borderColor = '#FF9900'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(255,153,0,0.15)'; }}
                       onBlur={(e) => { e.currentTarget.style.borderColor = '#d5d9d9'; e.currentTarget.style.boxShadow = 'none'; }} />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1.5" style={{ color: '#0F1111' }}>{t("contactEmailLabel")}</label>
-                    <input type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full px-3 py-2.5 border rounded-md text-sm outline-none" style={{ borderColor: '#d5d9d9' }} placeholder={t("contactEmailPlaceholder")}
+                    <label className="block text-sm font-medium mb-1.5" style={{ color: '#0F1111' }}>{c("contactEmailLabel")}</label>
+                    <input type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full px-3 py-2.5 border rounded-md text-sm outline-none" style={{ borderColor: '#d5d9d9' }} placeholder={c("contactEmailPlaceholder")}
                       onFocus={(e) => { e.currentTarget.style.borderColor = '#FF9900'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(255,153,0,0.15)'; }}
                       onBlur={(e) => { e.currentTarget.style.borderColor = '#d5d9d9'; e.currentTarget.style.boxShadow = 'none'; }} />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1.5" style={{ color: '#0F1111' }}>{t("contactMessageLabel")}</label>
-                    <textarea value={content} onChange={e => setContent(e.target.value)} rows={5} className="w-full px-3 py-2.5 border rounded-md text-sm outline-none resize-none" style={{ borderColor: '#d5d9d9' }} placeholder={t("contactMessagePlaceholder")}
+                    <label className="block text-sm font-medium mb-1.5" style={{ color: '#0F1111' }}>{c("contactMessageLabel")}</label>
+                    <textarea value={content} onChange={e => setContent(e.target.value)} rows={5} className="w-full px-3 py-2.5 border rounded-md text-sm outline-none resize-none" style={{ borderColor: '#d5d9d9' }} placeholder={c("contactMessagePlaceholder")}
                       onFocus={(e) => { e.currentTarget.style.borderColor = '#FF9900'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(255,153,0,0.15)'; }}
                       onBlur={(e) => { e.currentTarget.style.borderColor = '#d5d9d9'; e.currentTarget.style.boxShadow = 'none'; }} />
                   </div>
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input type="checkbox" checked={subscribe} onChange={e => setSubscribe(e.target.checked)} className="w-4 h-4 rounded" style={{ accentColor: '#FF9900' }} />
-                    <span className="text-sm" style={{ color: '#565959' }}>{t("contactSubscribe")}</span>
+                    <span className="text-sm" style={{ color: '#565959' }}>{c("contactSubscribe")}</span>
                   </label>
                   <button type="submit" disabled={sending} className="w-full py-2.5 rounded-md text-sm font-semibold transition-all disabled:opacity-50 flex items-center justify-center gap-2" style={{ background: 'linear-gradient(180deg, #ffd472, #f3a847)', color: '#0F1111', border: '1px solid #a88734' }}>
-                    <Send className="w-4 h-4" /><span>{sending ? t("contactSending") : t("contactSend")}</span>
+                    <Send className="w-4 h-4" /><span>{sending ? c("contactSending") : c("contactSend")}</span>
                   </button>
                 </form>
               )}

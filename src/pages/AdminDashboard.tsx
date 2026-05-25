@@ -1721,44 +1721,96 @@ function SettingsTab() {
   const [settings, setSettings] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [openSections, setOpenSections] = useState<Set<string>>(new Set(["site", "hero"]));
 
-  const keys = [
-    { key: "siteTitle", label: "Site Title" },
-    { key: "contactEmail", label: "Contact Email" },
-    { key: "metaKeywords", label: "Meta Keywords" },
-    { key: "metaDescription", label: "Meta Description" },
-    { key: "heroBadge", label: "Hero Badge Text" },
-    { key: "heroTitle", label: "Hero Title" },
-    { key: "heroSubtitle", label: "Hero Subtitle" },
-    { key: "aboutTitle", label: "About Title" },
-    { key: "aboutHero", label: "About Hero Tagline" },
-    { key: "aboutSubtitle", label: "About Subtitle" },
-    { key: "aboutStory", label: "About Brand Story", long: true },
-    { key: "aboutWhyTitle", label: "About Features Heading" },
-    { key: "aboutCommitment", label: "About Commitment Heading" },
-    { key: "aboutCommitmentText", label: "About Commitment Text", long: true },
-    { key: "aboutCTA", label: "About CTA Heading" },
-    { key: "aboutCTADesc", label: "About CTA Description" },
-    { key: "footerAbout", label: "Footer About Text", long: true },
-    // Contact page editable content
-    { key: "contactTitle", label: "Contact Page Title" },
-    { key: "contactSubtitle", label: "Contact Page Subtitle" },
-    { key: "contactInfo", label: "Contact Info Section Title" },
-    { key: "contactInfoDesc", label: "Contact Info Description", long: true },
-    { key: "contactResponseTime", label: "Response Time Label" },
-    { key: "contactResponseValue", label: "Response Time Value" },
-    { key: "contactBusinessHours", label: "Business Hours Label" },
-    { key: "contactBusinessValue", label: "Business Hours Value" },
-    { key: "contactFAQ", label: "FAQ Section Title" },
-    { key: "contactFAQ1Q", label: "FAQ 1 Question" },
-    { key: "contactFAQ1A", label: "FAQ 1 Answer", long: true },
-    { key: "contactFAQ2Q", label: "FAQ 2 Question" },
-    { key: "contactFAQ2A", label: "FAQ 2 Answer", long: true },
-    { key: "contactFAQ3Q", label: "FAQ 3 Question" },
-    { key: "contactFAQ3A", label: "FAQ 3 Answer", long: true },
-    { key: "contactFormTitle", label: "Contact Form Title" },
-    { key: "contactSuccessTitle", label: "Success Message Title" },
-    { key: "contactSuccessDesc", label: "Success Message Description", long: true },
+  const toggleSection = (section: string) => {
+    setOpenSections(prev => {
+      const next = new Set(prev);
+      if (next.has(section)) next.delete(section);
+      else next.add(section);
+      return next;
+    });
+  };
+
+  const sections = [
+    {
+      id: "site",
+      title: "Site Info",
+      desc: "Basic site information (affects all pages)",
+      keys: [
+        { key: "siteTitle", label: "Site Title" },
+        { key: "contactEmail", label: "Contact Email" },
+      ],
+    },
+    {
+      id: "hero",
+      title: "Home Page - Hero Section",
+      desc: "Top banner area on the home page",
+      keys: [
+        { key: "heroBadge", label: "Badge Text (e.g. New Collection 2026)" },
+        { key: "heroTitle", label: "Main Heading" },
+        { key: "heroSubtitle", label: "Subtitle" },
+      ],
+    },
+    {
+      id: "about",
+      title: "About Page",
+      desc: "Content for /about page",
+      keys: [
+        { key: "aboutTitle", label: "Page Title" },
+        { key: "aboutHero", label: "Hero Tagline" },
+        { key: "aboutSubtitle", label: "Brand Story Subtitle" },
+        { key: "aboutStory", label: "Brand Story Body", long: true },
+        { key: "aboutWhyTitle", label: "Features Section Heading" },
+        { key: "aboutCommitment", label: "Commitment Heading" },
+        { key: "aboutCommitmentText", label: "Commitment Body", long: true },
+        { key: "aboutCTA", label: "Call-to-Action Heading" },
+        { key: "aboutCTADesc", label: "Call-to-Action Description" },
+      ],
+    },
+    {
+      id: "contact",
+      title: "Contact Page",
+      desc: "Content for /contact page",
+      keys: [
+        { key: "contactTitle", label: "Page Title" },
+        { key: "contactSubtitle", label: "Subtitle" },
+        { key: "contactInfo", label: "Info Section Title" },
+        { key: "contactInfoDesc", label: "Info Section Description", long: true },
+        { key: "contactResponseTime", label: "Response Time Label" },
+        { key: "contactResponseValue", label: "Response Time Value" },
+        { key: "contactBusinessHours", label: "Business Hours Label" },
+        { key: "contactBusinessValue", label: "Business Hours Value" },
+        { key: "contactFAQ", label: "FAQ Section Title" },
+        { key: "contactFAQ1Q", label: "FAQ 1 Question" },
+        { key: "contactFAQ1A", label: "FAQ 1 Answer", long: true },
+        { key: "contactFAQ2Q", label: "FAQ 2 Question" },
+        { key: "contactFAQ2A", label: "FAQ 2 Answer", long: true },
+        { key: "contactFAQ3Q", label: "FAQ 3 Question" },
+        { key: "contactFAQ3A", label: "FAQ 3 Answer", long: true },
+        { key: "contactFormTitle", label: "Form Title" },
+        { key: "contactSuccessTitle", label: "Success Message Title (shown after form submission)" },
+        { key: "contactSuccessDesc", label: "Success Message Description", long: true },
+      ],
+    },
+    {
+      id: "seo",
+      title: "SEO",
+      desc: "Search engine optimization meta tags",
+      keys: [
+        { key: "metaKeywords", label: "Meta Keywords" },
+        { key: "metaDescription", label: "Meta Description", long: true },
+      ],
+    },
+    {
+      id: "footer",
+      title: "Footer & Top Bar",
+      desc: "Footer and announcement bar text",
+      keys: [
+        { key: "footerAbout", label: "Footer About Text", long: true },
+        { key: "topBarText", label: "Top Bar Announcement" },
+      ],
+    },
   ];
 
   // Logo image is handled separately (file upload)
@@ -1775,10 +1827,13 @@ function SettingsTab() {
 
   useEffect(() => { load(); }, []);
 
+  // Flatten all section keys for save
+  const allKeys = sections.flatMap(s => s.keys);
+
   const save = async () => {
     setSaving(true); setError("");
     try {
-      for (const { key } of keys) {
+      for (const { key } of allKeys) {
         const val = settings[key] || "";
         const { data: existing } = await supabase.from("settings").select("id").eq("key", key).single();
         if (existing) { await supabase.from("settings").update({ value: val }).eq("key", key); }
@@ -1792,20 +1847,35 @@ function SettingsTab() {
     <div className="space-y-4">
       {error && <ErrorMsg msg={error} onClose={() => setError("")} />}
       <h2 className="text-xl font-bold text-gray-900">Settings</h2>
-      <div className="bg-white rounded-xl border border-gray-100 p-4 space-y-4">
-        {keys.map(({ key, label, long }) => (
-          <div key={key}>
-            <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
-            {long ? (
-              <textarea value={settings[key] || ""} onChange={(e) => setSettings({ ...settings, [key]: e.target.value })} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" rows={4} />
-            ) : key === "metaDescription" || key === "heroSubtitle" ? (
-              <textarea value={settings[key] || ""} onChange={(e) => setSettings({ ...settings, [key]: e.target.value })} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" rows={2} />
-            ) : (
-              <input value={settings[key] || ""} onChange={(e) => setSettings({ ...settings, [key]: e.target.value })} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
-            )}
-          </div>
-        ))}
-        <button onClick={save} disabled={saving} className="px-4 py-2 bg-[#FF9900] hover:bg-[#E68A00] text-white rounded-lg text-sm font-medium disabled:opacity-50">{saving ? "Saving..." : "Save Settings"}</button>
+      {sections.map(section => (
+        <div key={section.id} className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+          <button onClick={() => toggleSection(section.id)} className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors text-left">
+            <div>
+              <h3 className="font-semibold text-gray-900 text-sm">{section.title}</h3>
+              <p className="text-xs text-gray-400 mt-0.5">{section.desc}</p>
+            </div>
+            <svg className={`w-4 h-4 text-gray-400 transition-transform ${openSections.has(section.id) ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+          </button>
+          {openSections.has(section.id) && (
+            <div className="px-4 pb-4 space-y-3 border-t border-gray-50 pt-3">
+              {section.keys.map(({ key, label, long }) => (
+                <div key={key}>
+                  <label className="block text-xs font-medium text-gray-500 mb-1 uppercase tracking-wider">{label}</label>
+                  {long ? (
+                    <textarea value={settings[key] || ""} onChange={(e) => setSettings({ ...settings, [key]: e.target.value })} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" rows={3} />
+                  ) : key === "metaDescription" || key === "heroSubtitle" || key === "contactInfoDesc" ? (
+                    <textarea value={settings[key] || ""} onChange={(e) => setSettings({ ...settings, [key]: e.target.value })} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" rows={2} />
+                  ) : (
+                    <input value={settings[key] || ""} onChange={(e) => setSettings({ ...settings, [key]: e.target.value })} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      ))}
+      <div className="bg-white rounded-xl border border-gray-100 p-4">
+        <button onClick={save} disabled={saving} className="w-full px-4 py-2.5 bg-[#FF9900] hover:bg-[#E68A00] text-white rounded-lg text-sm font-medium disabled:opacity-50">{saving ? "Saving..." : "Save All Settings"}</button>
       </div>
 
       {/* Logo Image Upload */}
