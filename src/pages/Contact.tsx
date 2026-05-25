@@ -38,7 +38,7 @@ export default function Contact() {
     e.preventDefault();
     setError("");
     if (!name.trim() || !email.trim() || !content.trim()) {
-      setError(t("contactRequiredError"));
+      setError(c("contactRequiredError"));
       return;
     }
     setSending(true);
@@ -116,7 +116,7 @@ export default function Contact() {
                   </div>
                   <h3 className="text-lg font-bold mb-2" style={{ color: '#0F1111' }}>{c("contactSuccessTitle")}</h3>
                   <p className="text-sm mb-5" style={{ color: '#565959' }}>{c("contactSuccessDesc")}</p>
-                  <button onClick={() => setSubmitted(false)} className="text-sm font-medium" style={{ color: '#FF9900' }}>{t("contactSendAnother")}</button>
+                  <button onClick={() => setSubmitted(false)} className="text-sm font-medium" style={{ color: '#FF9900' }}>{c("contactSendAnother")}</button>
                 </div>
               ) : (
                 <form onSubmit={handleSubmit} className="space-y-4">

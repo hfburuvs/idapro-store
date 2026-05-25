@@ -1794,15 +1794,6 @@ function SettingsTab() {
       ],
     },
     {
-      id: "seo",
-      title: "SEO",
-      desc: "Search engine optimization meta tags",
-      keys: [
-        { key: "metaKeywords", label: "Meta Keywords" },
-        { key: "metaDescription", label: "Meta Description", long: true },
-      ],
-    },
-    {
       id: "footer",
       title: "Footer & Top Bar",
       desc: "Footer and announcement bar text",
@@ -1816,11 +1807,36 @@ function SettingsTab() {
   // Logo image is handled separately (file upload)
   const logoImageKey = "logoImage";
 
+  const defaultSettings: Record<string, string> = {
+    contactTitle: "Contact Us",
+    contactSubtitle: "Have questions? We'd love to hear from you.",
+    contactInfo: "Contact Information",
+    contactInfoDesc: "Get in touch with us. We're here to help.",
+    contactResponseTime: "Response Time",
+    contactResponseValue: "Within 24 hours",
+    contactBusinessHours: "Business Hours",
+    contactBusinessValue: "Mon-Fri, 9AM-6PM EST",
+    contactFAQ: "Frequently Asked Questions",
+    contactFAQ1Q: "How long does shipping take?",
+    contactFAQ1A: "Standard shipping takes 3-5 business days. International shipping varies by country.",
+    contactFAQ2Q: "What is your return policy?",
+    contactFAQ2A: "We offer a 30-day money-back guarantee. Contact us for a full refund.",
+    contactFAQ3Q: "Do you offer wholesale pricing?",
+    contactFAQ3A: "Yes, we offer wholesale pricing for bulk orders. Contact us for a custom quote.",
+    contactFormTitle: "Send us a Message",
+    contactSuccessTitle: "Message Sent!",
+    contactSuccessDesc: "Thank you for reaching out. We'll get back to you soon.",
+  };
+
   async function load() {
     try {
       const { data } = await supabase.from("settings").select("*");
       const map: Record<string, string> = {};
       (data || []).forEach((s: any) => { map[s.key] = s.value; });
+      // Fill in default values for empty contact settings
+      for (const [key, val] of Object.entries(defaultSettings)) {
+        if (!map[key]) map[key] = val;
+      }
       setSettings(map);
     } catch (err: any) { setError(err.message); }
   }
