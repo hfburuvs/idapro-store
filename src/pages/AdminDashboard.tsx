@@ -1740,6 +1740,25 @@ function SettingsTab() {
     { key: "aboutCTA", label: "About CTA Heading" },
     { key: "aboutCTADesc", label: "About CTA Description" },
     { key: "footerAbout", label: "Footer About Text", long: true },
+    // Contact page editable content
+    { key: "contactTitle", label: "Contact Page Title" },
+    { key: "contactSubtitle", label: "Contact Page Subtitle" },
+    { key: "contactInfo", label: "Contact Info Section Title" },
+    { key: "contactInfoDesc", label: "Contact Info Description", long: true },
+    { key: "contactResponseTime", label: "Response Time Label" },
+    { key: "contactResponseValue", label: "Response Time Value" },
+    { key: "contactBusinessHours", label: "Business Hours Label" },
+    { key: "contactBusinessValue", label: "Business Hours Value" },
+    { key: "contactFAQ", label: "FAQ Section Title" },
+    { key: "contactFAQ1Q", label: "FAQ 1 Question" },
+    { key: "contactFAQ1A", label: "FAQ 1 Answer", long: true },
+    { key: "contactFAQ2Q", label: "FAQ 2 Question" },
+    { key: "contactFAQ2A", label: "FAQ 2 Answer", long: true },
+    { key: "contactFAQ3Q", label: "FAQ 3 Question" },
+    { key: "contactFAQ3A", label: "FAQ 3 Answer", long: true },
+    { key: "contactFormTitle", label: "Contact Form Title" },
+    { key: "contactSuccessTitle", label: "Success Message Title" },
+    { key: "contactSuccessDesc", label: "Success Message Description", long: true },
   ];
 
   // Logo image is handled separately (file upload)

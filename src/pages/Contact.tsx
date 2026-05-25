@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useCountry } from "@/hooks/useCountry";
 
 export default function Contact() {
-  const { t } = useCountry();
+  const { t, country } = useCountry();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [content, setContent] = useState("");
@@ -13,6 +13,7 @@ export default function Contact() {
   const [error, setError] = useState("");
   const [sending, setSending] = useState(false);
   const [contactEmail, setContactEmail] = useState("");
+  const [settingsMap, setSettingsMap] = useState<Record<string, string>>({});
 
   useEffect(() => {
     async function load() {
@@ -20,11 +21,18 @@ export default function Contact() {
         const { data } = await supabase.from("settings").select("*");
         const map: Record<string, string> = {};
         (data || []).forEach((s: any) => { map[s.key] = s.value; });
+        setSettingsMap(map);
         if (map["contactEmail"]) setContactEmail(map["contactEmail"]);
       } catch (e) { /* ignore */ }
     }
     load();
   }, []);
+
+  // Allow settings to override translations for contact page content
+  const c = (key: string) => {
+    if (country === "us") return settingsMap[key] || t(key);
+    return t(key);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,8 +63,8 @@ export default function Contact() {
       {/* Hero — Amazon dark style */}
       <section style={{ background: '#131921', color: '#fff', padding: '48px 24px' }}>
         <div className="max-w-[1500px] mx-auto text-center">
-          <h1 className="text-3xl md:text-5xl font-bold mb-3">{t("contactTitle")}</h1>
-          <p className="text-base max-w-2xl mx-auto" style={{ color: '#ccc' }}>{t("contactSubtitle")}</p>
+          <h1 className="text-3xl md:text-5xl font-bold mb-3">{c("contactTitle")}</h1>
+          <p className="text-base max-w-2xl mx-auto" style={{ color: '#ccc' }}>{c("contactSubtitle")}</p>
         </div>
       </section>
 
@@ -65,8 +73,8 @@ export default function Contact() {
           {/* Left: Contact Info */}
           <div className="lg:col-span-2 space-y-6">
             <div>
-              <h2 className="text-lg font-bold mb-4" style={{ color: '#0F1111' }}>{t("contactInfo")}</h2>
-              <p className="text-sm mb-5 leading-relaxed" style={{ color: '#565959' }}>{t("contactInfoDesc")}</p>
+              <h2 className="text-lg font-bold mb-4" style={{ color: '#0F1111' }}>{c("contactInfo")}</h2>
+              <p className="text-sm mb-5 leading-relaxed" style={{ color: '#565959' }}>{c("contactInfoDesc")}</p>
               <div className="space-y-3">
                 {infoItems.map((item, i) => (
                   <div key={i} className="flex items-start gap-3 p-3 rounded-lg" style={{ background: '#fff', border: '1px solid #eee' }}>
@@ -83,15 +91,15 @@ export default function Contact() {
             </div>
             {/* FAQ */}
             <div className="bg-white rounded-lg p-5" style={{ border: '1px solid #eee' }}>
-              <h3 className="font-bold mb-3 text-sm" style={{ color: '#0F1111' }}>{t("contactFAQ")}</h3>
+              <h3 className="font-bold mb-3 text-sm" style={{ color: '#0F1111' }}>{c("contactFAQ")}</h3>
               <div className="space-y-2">
                 {[1,2,3].map(i => (
                   <details key={i} className="group">
                     <summary className="flex items-center justify-between text-sm py-2 cursor-pointer" style={{ color: '#0F1111' }}>
-                      {t(`contactFAQ${i}Q` as any)}
+                      {c(`contactFAQ${i}Q` as any)}
                       <svg className="w-3.5 h-3.5 transition group-open:rotate-180" style={{ color: '#999' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                     </summary>
-                    <p className="pb-2 text-xs" style={{ color: '#565959' }}>{t(`contactFAQ${i}A` as any)}</p>
+                    <p className="pb-2 text-xs" style={{ color: '#565959' }}>{c(`contactFAQ${i}A` as any)}</p>
                   </details>
                 ))}
               </div>
@@ -106,13 +114,13 @@ export default function Contact() {
                   <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4" style={{ background: '#ecfdf5' }}>
                     <Check className="w-7 h-7" style={{ color: '#16a34a' }} />
                   </div>
-                  <h3 className="text-lg font-bold mb-2" style={{ color: '#0F1111' }}>{t("contactSuccessTitle")}</h3>
-                  <p className="text-sm mb-5" style={{ color: '#565959' }}>{t("contactSuccessDesc")}</p>
+                  <h3 className="text-lg font-bold mb-2" style={{ color: '#0F1111' }}>{c("contactSuccessTitle")}</h3>
+                  <p className="text-sm mb-5" style={{ color: '#565959' }}>{c("contactSuccessDesc")}</p>
                   <button onClick={() => setSubmitted(false)} className="text-sm font-medium" style={{ color: '#FF9900' }}>{t("contactSendAnother")}</button>
                 </div>
               ) : (
                 <form onSubmit={handleSubmit} className="space-y-4">
-                  <h2 className="text-lg font-bold mb-2" style={{ color: '#0F1111' }}>{t("contactFormTitle")}</h2>
+                  <h2 className="text-lg font-bold mb-2" style={{ color: '#0F1111' }}>{c("contactFormTitle")}</h2>
                   {error && <div className="flex items-center gap-2 p-3 rounded-lg text-sm" style={{ color: '#dc2626', background: '#fef2f2' }}><AlertCircle className="w-4 h-4 flex-shrink-0" /><span>{error}</span></div>}
                   <div>
                     <label className="block text-sm font-medium mb-1.5" style={{ color: '#0F1111' }}>{t("contactNameLabel")}</label>
