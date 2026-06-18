@@ -2638,4 +2638,4 @@ CREATE POLICY "Allow all" ON public.installation_guides FOR ALL USING (true) WIT
           );
         })}
       </div>
-    </div
+    </div>
