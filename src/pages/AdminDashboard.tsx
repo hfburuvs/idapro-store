@@ -7,7 +7,7 @@ import {
   Upload, Download, Trash2, Plus, Search, Pencil,
   Settings, Layers, Tag, LayoutDashboard, Image,
   Navigation, Globe, Code2, RotateCcw, Mail, Lock,
-  Video, Check, BookOpen, Loader,
+  Video, Check, BookOpen, Loader, ArrowUp, ArrowDown,
 } from "lucide-react";
 
 type Tab = "dashboard" | "products" | "messages" | "categories" | "brands"
@@ -2460,17 +2460,22 @@ CREATE POLICY "Allow all" ON public.store_links FOR ALL USING (true) WITH CHECK 
 }
 
 /* ============ Installation Guides ============ */
+/* ============ Installation Guides (v2: icon + product_tag + country + sort) ============ */
 function GuidesTab() {
   const [items, setItems] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [title, setTitle] = useState("");
   const [categoryId, setCategoryId] = useState("");
+  const [productTag, setProductTag] = useState("");
+  const [iconUrl, setIconUrl] = useState("");
+  const [countryCode, setCountryCode] = useState("us");
   const [videoUrl, setVideoUrl] = useState("");
   const [manualUrl, setManualUrl] = useState("");
   const [editId, setEditId] = useState<number | null>(null);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [uploadingManual, setUploadingManual] = useState(false);
+  const [uploadingIcon, setUploadingIcon] = useState(false);
 
   async function load() {
     try {
@@ -2495,6 +2500,9 @@ function GuidesTab() {
         CREATE TABLE IF NOT EXISTS public.installation_guides (
           id SERIAL PRIMARY KEY,
           category_id INTEGER NOT NULL,
+          icon_url TEXT,
+          product_tag TEXT,
+          country_code TEXT DEFAULT 'us',
           title TEXT,
           video_url TEXT,
           manual_url TEXT,
@@ -2510,13 +2518,28 @@ function GuidesTab() {
     } catch { setError("SQL_REQUIRED"); }
   };
 
+  const handleSort = async (id: number, direction: "up" | "down") => {
+    const idx = items.findIndex((i) => i.id === id);
+    if (idx === -1) return;
+    if (direction === "up" && idx === 0) return;
+    if (direction === "down" && idx === items.length - 1) return;
+    const swapIdx = direction === "up" ? idx - 1 : idx + 1;
+    const newItems = [...items];
+    const temp = newItems[idx].sort_order;
+    newItems[idx].sort_order = newItems[swapIdx].sort_order;
+    newItems[swapIdx].sort_order = temp;
+    await supabase.from("installation_guides").update({ sort_order: newItems[idx].sort_order }).eq("id", newItems[idx].id);
+    await supabase.from("installation_guides").update({ sort_order: newItems[swapIdx].sort_order }).eq("id", newItems[swapIdx].id);
+    load();
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault(); setSaving(true); setError("");
     if (!categoryId || isNaN(parseInt(categoryId))) {
       setError("Please select a category."); setSaving(false); return;
     }
     try {
-      const data = { category_id: parseInt(categoryId), title, video_url: videoUrl, manual_url: manualUrl, sort_order: editId ? undefined : items.length };
+      const data = { category_id: parseInt(categoryId), product_tag: productTag || null, icon_url: iconUrl || null, country_code: countryCode, title, video_url: videoUrl, manual_url: manualUrl, sort_order: editId ? undefined : items.length };
       if (editId) {
         const { error: upErr } = await supabase.from("installation_guides").update(data).eq("id", editId);
         if (upErr) throw upErr;
@@ -2524,7 +2547,7 @@ function GuidesTab() {
         const { error: inErr } = await supabase.from("installation_guides").insert(data);
         if (inErr) throw inErr;
       }
-      setTitle(""); setCategoryId(""); setVideoUrl(""); setManualUrl(""); setEditId(null); load();
+      setTitle(""); setCategoryId(""); setProductTag(""); setIconUrl(""); setCountryCode("us"); setVideoUrl(""); setManualUrl(""); setEditId(null); load();
     } catch (err: any) { setError(err.message || "Save failed — check RLS policy or table permissions"); }
     setSaving(false);
   };
@@ -2538,6 +2561,35 @@ function GuidesTab() {
     } catch (err: any) { setError(err.message || "Delete failed"); }
   };
 
+  const handleUpload = async (type: "icon" | "manual", file: File) => {
+    if (file.size > 10 * 1024 * 1024) { setError("File too large. Max 10MB."); return; }
+    if (type === "icon") setUploadingIcon(true); else setUploadingManual(true);
+    setError("");
+    try {
+      const ext = file.name.split('.').pop()?.toLowerCase() || (type === "icon" ? "png" : "pdf");
+      const safeExt = type === "icon" ? (ext.match(/^(png|jpg|jpeg)$/) ? ext : "png") : (ext.match(/^(jpg|jpeg|png|pdf)$/) ? ext : "pdf");
+      const prefix = type === "icon" ? "icons" : "guides";
+      const fileName = `${prefix}/${Date.now()}_${type}.${safeExt}`;
+      const fileBlob = new Blob([await file.arrayBuffer()], { type: file.type });
+      let { data: upData, error: upErr } = await supabase.storage.from("instructions").upload(fileName, fileBlob, { contentType: file.type, upsert: false });
+      if (upErr && (upErr.message?.includes("bucket") || upErr.message?.includes("Bucket"))) {
+        try { await supabase.storage.createBucket("instructions", { public: true, fileSizeLimit: 10485760 }); } catch { /* exists */ }
+        const retry = await supabase.storage.from("instructions").upload(fileName, fileBlob, { contentType: file.type, upsert: false });
+        upData = retry.data; upErr = retry.error;
+      }
+      if (upErr) {
+        if (upErr.message?.includes("row-level security") || upErr.message?.includes("RLS") || upErr.message?.includes("policy")) {
+          setError('RLS policy blocks upload. Go to Supabase Dashboard > Storage > instructions > Policies, add policy with "Allowed operation: ALL"');
+        } else { setError(upErr.message); }
+        if (type === "icon") setUploadingIcon(false); else setUploadingManual(false);
+        return;
+      }
+      const { data: urlData } = supabase.storage.from("instructions").getPublicUrl(upData!.path);
+      if (type === "icon") setIconUrl(urlData.publicUrl); else setManualUrl(urlData.publicUrl);
+    } catch (err: any) { setError(err.message); }
+    if (type === "icon") setUploadingIcon(false); else setUploadingManual(false);
+  };
+
   if (error === "TABLE_NOT_FOUND" || error === "SQL_REQUIRED") {
     return (
       <div className="space-y-4">
@@ -2548,6 +2600,9 @@ function GuidesTab() {
           <pre className="bg-white border border-amber-200 rounded-lg p-3 text-xs text-gray-700 overflow-x-auto mb-4">{`CREATE TABLE IF NOT EXISTS public.installation_guides (
   id SERIAL PRIMARY KEY,
   category_id INTEGER NOT NULL,
+  icon_url TEXT,
+  product_tag TEXT,
+  country_code TEXT DEFAULT 'us',
   title TEXT,
   video_url TEXT,
   manual_url TEXT,
@@ -2567,14 +2622,30 @@ CREATE POLICY "Allow all" ON public.installation_guides FOR ALL USING (true) WIT
     <div className="space-y-4">
       {error && <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">{error}</div>}
       <h2 className="text-xl font-bold text-gray-900">Installation Guides</h2>
-      <p className="text-sm text-gray-500">Manage installation videos and manuals by product category. Video URLs should link to Amazon/Youtube. Manual URLs can be JPG/PNG/PDF file links (upload to Supabase Storage or external CDN).</p>
+      <p className="text-sm text-gray-500">Add guides by product. Same product_tag shares the same icon. Set country_code for each language version.</p>
+
+      {/* Form */}
       <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-gray-100 p-4 space-y-3">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className="px-3 py-2 border border-gray-200 rounded-lg text-sm" required>
             <option value="">Select Category</option>
             {categories.map((cat) => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
           </select>
-          <input placeholder="Guide Title (e.g. Screen Protector Install)" value={title} onChange={(e) => setTitle(e.target.value)} className="px-3 py-2 border border-gray-200 rounded-lg text-sm" />
+          <input placeholder="Country code (e.g. us, de, es)" value={countryCode} onChange={(e) => setCountryCode(e.target.value.toLowerCase())} className="px-3 py-2 border border-gray-200 rounded-lg text-sm" />
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <input placeholder="Product tag (e.g. screen-protector) — shared icon" value={productTag} onChange={(e) => setProductTag(e.target.value)} className="px-3 py-2 border border-gray-200 rounded-lg text-sm" />
+          <input placeholder="Guide Title" value={title} onChange={(e) => setTitle(e.target.value)} className="px-3 py-2 border border-gray-200 rounded-lg text-sm" />
+        </div>
+        {/* Icon upload */}
+        <div className="flex gap-2">
+          <input placeholder="Icon URL (auto-filled after upload, 64x64 PNG/JPG)" value={iconUrl} onChange={(e) => setIconUrl(e.target.value)} className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm" />
+          <label className={`cursor-pointer px-3 py-2 rounded-lg text-sm flex items-center gap-1.5 flex-shrink-0 transition-colors ${uploadingIcon ? "bg-gray-200 text-gray-500" : "bg-gray-100 hover:bg-gray-200 text-gray-700"}`}>
+            {uploadingIcon ? <Loader className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+            {uploadingIcon ? "Uploading..." : "Upload Icon"}
+            <input type="file" accept=".png,.jpg,.jpeg" className="hidden" disabled={uploadingIcon} onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUpload("icon", f); e.target.value = ""; }} />
+          </label>
+          {iconUrl && <img src={iconUrl} alt="icon" className="w-8 h-8 rounded-full object-cover border border-gray-200" />}
         </div>
         <input placeholder="Video URL (Amazon/Youtube link)" value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
         {/* Manual URL with upload */}
@@ -2583,52 +2654,41 @@ CREATE POLICY "Allow all" ON public.installation_guides FOR ALL USING (true) WIT
           <label className={`cursor-pointer px-3 py-2 rounded-lg text-sm flex items-center gap-1.5 flex-shrink-0 transition-colors ${uploadingManual ? "bg-gray-200 text-gray-500" : "bg-gray-100 hover:bg-gray-200 text-gray-700"}`}>
             {uploadingManual ? <Loader className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
             {uploadingManual ? "Uploading..." : "Upload Manual"}
-            <input type="file" accept=".jpg,.jpeg,.png,.pdf" className="hidden" disabled={uploadingManual} onChange={async (e) => {
-              const file = e.target.files?.[0];
-              if (!file) return;
-              if (file.size > 10 * 1024 * 1024) { setError("File too large. Max 10MB."); e.target.value = ""; return; }
-              setUploadingManual(true); setError("");
-              try {
-                // Completely replace filename, keep only extension
-                const ext = file.name.split('.').pop()?.toLowerCase() || "pdf";
-                const safeExt = ext.match(/^(jpg|jpeg|png|pdf)$/) ? ext : "pdf";
-                const fileName = `guides/${Date.now()}_manual.${safeExt}`;
-                // Convert File to Blob to strip original filename (avoid Chinese chars in key)
-                const fileBlob = new Blob([await file.arrayBuffer()], { type: file.type });
-                let { data: upData, error: upErr } = await supabase.storage.from("instructions").upload(fileName, fileBlob, { contentType: file.type, upsert: false });
-                if (upErr && (upErr.message?.includes("bucket") || upErr.message?.includes("Bucket") || upErr.message?.includes("not found"))) {
-                  try { await supabase.storage.createBucket("instructions", { public: true, fileSizeLimit: 10485760 }); } catch { /* exists */ }
-                }
-                if (upErr) {
-                  if (upErr.message?.includes("row-level security") || upErr.message?.includes("RLS") || upErr.message?.includes("policy")) {
-                    setError('RLS policy blocks upload. Go to Supabase Dashboard > Storage > instructions > Policies, add policy with "Allowed operation: ALL" and expression: true');
-                  } else { setError(upErr.message); }
-                  setUploadingManual(false); e.target.value = ""; return;
-                }
-                const { data: urlData } = supabase.storage.from("instructions").getPublicUrl(upData!.path);
-                setManualUrl(urlData.publicUrl);
-              } catch (err: any) { setError(err.message); }
-              setUploadingManual(false); e.target.value = "";
-            }} />
+            <input type="file" accept=".jpg,.jpeg,.png,.pdf" className="hidden" disabled={uploadingManual} onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUpload("manual", f); e.target.value = ""; }} />
           </label>
         </div>
         <div className="flex gap-2">
           <button type="submit" disabled={saving} className="px-4 py-2 bg-[#FF9900] text-white rounded-lg text-sm font-medium disabled:opacity-50">{editId ? "Update" : "Add"} Guide</button>
-          {editId && <button type="button" onClick={() => { setEditId(null); setTitle(""); setCategoryId(""); setVideoUrl(""); setManualUrl(""); }} className="px-3 py-2 bg-gray-100 rounded-lg text-sm">Cancel</button>}
+          {editId && <button type="button" onClick={() => { setEditId(null); setTitle(""); setCategoryId(""); setProductTag(""); setIconUrl(""); setCountryCode("us"); setVideoUrl(""); setManualUrl(""); }} className="px-3 py-2 bg-gray-100 rounded-lg text-sm">Cancel</button>}
         </div>
       </form>
+
+      {/* List */}
       <div className="bg-white rounded-xl border border-gray-100 divide-y">
         {items.length === 0 && <p className="text-sm text-gray-400 text-center py-8">No installation guides yet.</p>}
-        {items.map((item) => {
+        {items.map((item, idx) => {
           const cat = categories.find((c) => c.id === item.category_id);
           return (
             <div key={item.id} className="flex items-center justify-between px-4 py-3">
-              <div>
-                <p className="text-sm font-medium text-gray-900">{item.title || "Untitled"}</p>
-                <p className="text-xs text-gray-400">Category: {cat?.name || "Unknown"} {item.video_url && "| Video"} {item.manual_url && "| Manual"}</p>
+              <div className="flex items-center gap-3">
+                {item.icon_url ? (
+                  <img src={item.icon_url} alt="" className="w-8 h-8 rounded-full object-cover border border-gray-200 flex-shrink-0" />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
+                    <HelpCircle className="w-4 h-4 text-gray-400" />
+                  </div>
+                )}
+                <div>
+                  <p className="text-sm font-medium text-gray-900">{item.title || "Untitled"}</p>
+                  <p className="text-xs text-gray-400">
+                    {cat?.name || "Unknown"} | tag: {item.product_tag || "—"} | {item.country_code || "us"} {item.video_url && "| Video"} {item.manual_url && "| Manual"}
+                  </p>
+                </div>
               </div>
               <div className="flex items-center gap-1">
-                <button onClick={() => { setEditId(item.id); setTitle(item.title || ""); setCategoryId(String(item.category_id)); setVideoUrl(item.video_url || ""); setManualUrl(item.manual_url || ""); }} className="p-1.5 text-gray-400 hover:text-blue-600 transition-colors"><Pencil className="w-4 h-4" /></button>
+                <button onClick={() => handleSort(item.id, "up")} disabled={idx === 0} className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30"><ArrowUp className="w-3.5 h-3.5" /></button>
+                <button onClick={() => handleSort(item.id, "down")} disabled={idx === items.length - 1} className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30"><ArrowDown className="w-3.5 h-3.5" /></button>
+                <button onClick={() => { setEditId(item.id); setTitle(item.title || ""); setCategoryId(String(item.category_id)); setProductTag(item.product_tag || ""); setIconUrl(item.icon_url || ""); setCountryCode(item.country_code || "us"); setVideoUrl(item.video_url || ""); setManualUrl(item.manual_url || ""); }} className="p-1.5 text-gray-400 hover:text-blue-600 transition-colors"><Pencil className="w-4 h-4" /></button>
                 <button onClick={() => handleDelete(item.id)} className="p-1.5 text-gray-400 hover:text-red-600 transition-colors"><Trash2 className="w-4 h-4" /></button>
               </div>
             </div>
@@ -2638,3 +2698,4 @@ CREATE POLICY "Allow all" ON public.installation_guides FOR ALL USING (true) WIT
     </div>
   );
 }
+

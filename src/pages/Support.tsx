@@ -24,6 +24,9 @@ interface Category {
 interface InstallationGuide {
   id: number;
   category_id: number;
+  icon_url: string;
+  product_tag: string;
+  country_code: string;
   video_url: string;
   manual_url: string;
   sort_order: number;
@@ -114,14 +117,17 @@ export default function Support() {
     { icon: Briefcase, label: c("contactBusinessHours"), value: c("contactBusinessValue") },
   ];
 
-  // Group guides by category
+  // Group guides by category → product_tag → country variants
   const guidesByCategory = guides.reduce((acc, guide) => {
     const cat = categories.find((c) => c.id === guide.category_id);
     if (!cat) return acc;
-    if (!acc[cat.id]) acc[cat.id] = { category: cat, guides: [] };
-    acc[cat.id].guides.push(guide);
+    if (!acc[cat.id]) acc[cat.id] = { category: cat, products: {} as Record<string, { icon_url: string; tag: string; guides: InstallationGuide[] }> };
+    const tag = guide.product_tag || guide.title || "untitled";
+    if (!acc[cat.id].products[tag]) acc[cat.id].products[tag] = { icon_url: guide.icon_url, tag, guides: [] };
+    if (guide.icon_url && !acc[cat.id].products[tag].icon_url) acc[cat.id].products[tag].icon_url = guide.icon_url;
+    acc[cat.id].products[tag].guides.push(guide);
     return acc;
-  }, {} as Record<number, { category: Category; guides: InstallationGuide[] }>);
+  }, {} as Record<number, { category: Category; products: Record<string, { icon_url: string; tag: string; guides: InstallationGuide[] }> }>);
 
   // Download helper: open preview in new window + trigger file download
   async function downloadFile(url: string, filename?: string) {
@@ -222,38 +228,60 @@ export default function Support() {
             </div>
           ) : (
             <div className="space-y-6">
-              {Object.values(guidesByCategory).map(({ category, guides }) => (
+              {Object.values(guidesByCategory).map(({ category, products }) => (
                 <div key={category.id} className="rounded-lg overflow-hidden" style={{ border: '1px solid #eee' }}>
                   <div className="px-5 py-3 font-semibold text-sm" style={{ background: '#f7f8f8', color: '#0F1111' }}>
                     {category.name}
                   </div>
-                  <div className="p-5 space-y-4">
-                    {guides.map((guide) => (
-                      <div key={guide.id} className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 rounded-lg" style={{ background: '#f7f8f8' }}>
-                        <div className="flex-1">
-                          <p className="text-sm font-medium" style={{ color: '#0F1111' }}>{guide.title || `${category.name} Guide`}</p>
+                  <div className="p-5 space-y-5">
+                    {Object.values(products).map((product) => (
+                      <div key={product.tag} className="flex gap-4">
+                        {/* Product icon (left side) */}
+                        <div className="flex-shrink-0">
+                          {product.icon_url ? (
+                            <img src={product.icon_url} alt="" className="w-12 h-12 rounded-full object-cover border border-gray-200" />
+                          ) : (
+                            <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">
+                              <HelpCircle className="w-5 h-5" style={{ color: '#999' }} />
+                            </div>
+                          )}
                         </div>
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                          {guide.video_url && (
-                            <a
-                              href={guide.video_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-md text-xs font-semibold transition-all"
-                              style={{ background: 'linear-gradient(180deg, #ffd472, #f3a847)', color: '#0F1111', border: '1px solid #a88734' }}
-                            >
-                              <Video className="w-3.5 h-3.5" />{t("watchVideo") || "Watch Video"}
-                            </a>
-                          )}
-                          {guide.manual_url && (
-                            <button
-                              onClick={() => downloadFile(guide.manual_url, (guide.title || "manual").replace(/[^a-zA-Z0-9]/g, "_"))}
-                              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-md text-xs font-semibold transition-all cursor-pointer"
-                              style={{ background: '#fff', color: '#0F1111', border: '1px solid #d5d9d9' }}
-                            >
-                              <Download className="w-3.5 h-3.5" />{t("downloadManual") || "Manual"}
-                            </button>
-                          )}
+                        {/* Language variants (right side) */}
+                        <div className="flex-1 space-y-2">
+                          {product.guides.map((guide) => (
+                            <div key={guide.id} className="flex flex-col sm:flex-row sm:items-center gap-2 p-3 rounded-lg" style={{ background: '#f7f8f8' }}>
+                              <div className="flex items-center gap-2 flex-1">
+                                <img
+                                  src={`https://flagcdn.com/w40/${guide.country_code === 'uk' ? 'gb' : guide.country_code}.png`}
+                                  alt={guide.country_code}
+                                  className="w-6 h-4 object-cover rounded-sm flex-shrink-0"
+                                />
+                                <span className="text-sm font-medium" style={{ color: '#0F1111' }}>{guide.title || product.tag}</span>
+                              </div>
+                              <div className="flex items-center gap-2 flex-shrink-0">
+                                {guide.video_url && (
+                                  <a
+                                    href={guide.video_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all"
+                                    style={{ background: 'linear-gradient(180deg, #ffd472, #f3a847)', color: '#0F1111', border: '1px solid #a88734' }}
+                                  >
+                                    <Video className="w-3 h-3" />{t("watchVideo") || "Video"}
+                                  </a>
+                                )}
+                                {guide.manual_url && (
+                                  <button
+                                    onClick={() => downloadFile(guide.manual_url, (guide.title || product.tag).replace(/[^a-zA-Z0-9]/g, "_"))}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all cursor-pointer"
+                                    style={{ background: '#fff', color: '#0F1111', border: '1px solid #d5d9d9' }}
+                                  >
+                                    <Download className="w-3 h-3" />{t("downloadManual") || "Manual"}
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          ))}
                         </div>
                       </div>
                     ))}
