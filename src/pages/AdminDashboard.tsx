@@ -7,7 +7,7 @@ import {
   Upload, Download, Trash2, Plus, Search, Pencil,
   Settings, Layers, Tag, LayoutDashboard, Image,
   Navigation, Globe, Code2, RotateCcw, Mail, Lock,
-  Video, Check, BookOpen, Loader, ArrowUp, ArrowDown,
+  Video, Check, BookOpen, Loader, ArrowUp, ArrowDown, HelpCircle,
 } from "lucide-react";
 
 type Tab = "dashboard" | "products" | "messages" | "categories" | "brands"
@@ -2699,3 +2699,4 @@ CREATE POLICY "Allow all" ON public.installation_guides FOR ALL USING (true) WIT
   );
 }
 
+// deployed
