@@ -2376,17 +2376,25 @@ function StoreLinksTab() {
     e.preventDefault(); setSaving(true); setError("");
     try {
       const data = { country_code: countryCode, label, url, sort_order: editId ? undefined : items.length };
-      if (editId) { await supabase.from("store_links").update(data).eq("id", editId); }
-      else { await supabase.from("store_links").insert(data); }
+      if (editId) {
+        const { error: upErr } = await supabase.from("store_links").update(data).eq("id", editId);
+        if (upErr) throw upErr;
+      } else {
+        const { error: inErr } = await supabase.from("store_links").insert(data);
+        if (inErr) throw inErr;
+      }
       setLabel(""); setUrl(""); setCountryCode("us"); setEditId(null); load();
-    } catch (err: any) { setError(err.message); }
+    } catch (err: any) { setError(err.message || "Save failed — check RLS policy or table permissions"); }
     setSaving(false);
   };
 
   const handleDelete = async (id: number) => {
     if (!confirm("Delete this store link?")) return;
-    try { await supabase.from("store_links").delete().eq("id", id); load(); }
-    catch (err: any) { setError(err.message); }
+    try {
+      const { error: delErr } = await supabase.from("store_links").delete().eq("id", id);
+      if (delErr) throw delErr;
+      load();
+    } catch (err: any) { setError(err.message || "Delete failed"); }
   };
 
   if (error === "TABLE_NOT_FOUND" || error === "SQL_REQUIRED") {
@@ -2507,19 +2515,30 @@ function GuidesTab() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault(); setSaving(true); setError("");
+    if (!categoryId || isNaN(parseInt(categoryId))) {
+      setError("Please select a category."); setSaving(false); return;
+    }
     try {
       const data = { category_id: parseInt(categoryId), title, video_url: videoUrl, manual_url: manualUrl, sort_order: editId ? undefined : items.length };
-      if (editId) { await supabase.from("installation_guides").update(data).eq("id", editId); }
-      else { await supabase.from("installation_guides").insert(data); }
+      if (editId) {
+        const { error: upErr } = await supabase.from("installation_guides").update(data).eq("id", editId);
+        if (upErr) throw upErr;
+      } else {
+        const { error: inErr } = await supabase.from("installation_guides").insert(data);
+        if (inErr) throw inErr;
+      }
       setTitle(""); setCategoryId(""); setVideoUrl(""); setManualUrl(""); setEditId(null); load();
-    } catch (err: any) { setError(err.message); }
+    } catch (err: any) { setError(err.message || "Save failed — check RLS policy or table permissions"); }
     setSaving(false);
   };
 
   const handleDelete = async (id: number) => {
     if (!confirm("Delete this guide?")) return;
-    try { await supabase.from("installation_guides").delete().eq("id", id); load(); }
-    catch (err: any) { setError(err.message); }
+    try {
+      const { error: delErr } = await supabase.from("installation_guides").delete().eq("id", id);
+      if (delErr) throw delErr;
+      load();
+    } catch (err: any) { setError(err.message || "Delete failed"); }
   };
 
   if (error === "TABLE_NOT_FOUND" || error === "SQL_REQUIRED") {
