@@ -123,6 +123,26 @@ export default function Support() {
     return acc;
   }, {} as Record<number, { category: Category; guides: InstallationGuide[] }>);
 
+  // Download helper — uses fetch+blob to support cross-origin downloads
+  async function downloadFile(url: string, filename?: string) {
+    try {
+      const res = await fetch(url);
+      const blob = await res.blob();
+      const ext = url.split('.').pop()?.split('?')[0] || 'pdf';
+      const name = filename ? `${filename}.${ext}` : `manual.${ext}`;
+      const objUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = objUrl;
+      a.download = name;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(objUrl);
+    } catch {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
+  }
+
   // Default store links if DB is empty
   const defaultStoreLinks: StoreLink[] = [
     { id: 0, country_code: "us", label: t("storeUS") || "US Store", url: "https://www.amazon.com", sort_order: 0, is_active: true },
@@ -221,14 +241,13 @@ export default function Support() {
                             </a>
                           )}
                           {guide.manual_url && (
-                            <a
-                              href={guide.manual_url}
-                              download
-                              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-md text-xs font-semibold transition-all"
+                            <button
+                              onClick={() => downloadFile(guide.manual_url, (guide.title || "manual").replace(/[^a-zA-Z0-9]/g, "_"))}
+                              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-md text-xs font-semibold transition-all cursor-pointer"
                               style={{ background: '#fff', color: '#0F1111', border: '1px solid #d5d9d9' }}
                             >
                               <Download className="w-3.5 h-3.5" />{t("downloadManual") || "Manual"}
-                            </a>
+                            </button>
                           )}
                         </div>
                       </div>
