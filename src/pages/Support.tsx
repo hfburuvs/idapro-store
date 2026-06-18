@@ -3,7 +3,7 @@ import {
   Mail, User, MessageSquare, Send, Check, AlertCircle, Clock, Briefcase,
   Store, ExternalLink, Video, Download, BookOpen, HelpCircle, ChevronDown, Globe
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useCountry } from "@/hooks/useCountry";
 
 interface StoreLink {
@@ -19,6 +19,7 @@ interface Category {
   id: number;
   name: string;
   slug: string;
+  sort_order: number;
 }
 
 interface InstallationGuide {
@@ -117,17 +118,21 @@ export default function Support() {
     { icon: Briefcase, label: c("contactBusinessHours"), value: c("contactBusinessValue") },
   ];
 
-  // Group guides by category → product_tag → country variants
-  const guidesByCategory = guides.reduce((acc, guide) => {
-    const cat = categories.find((c) => c.id === guide.category_id);
-    if (!cat) return acc;
-    if (!acc[cat.id]) acc[cat.id] = { category: cat, products: {} as Record<string, { icon_url: string; tag: string; guides: InstallationGuide[] }> };
-    const tag = guide.product_tag || guide.title || "untitled";
-    if (!acc[cat.id].products[tag]) acc[cat.id].products[tag] = { icon_url: guide.icon_url, tag, guides: [] };
-    if (guide.icon_url && !acc[cat.id].products[tag].icon_url) acc[cat.id].products[tag].icon_url = guide.icon_url;
-    acc[cat.id].products[tag].guides.push(guide);
-    return acc;
-  }, {} as Record<number, { category: Category; products: Record<string, { icon_url: string; tag: string; guides: InstallationGuide[] }> }>);
+  // Group guides by category → product_tag → country variants (sorted 3-level)
+  const guidesByCategory = useMemo(() => {
+    const map: Record<number, { category: Category; products: Record<string, { icon_url: string; tag: string; guides: InstallationGuide[] }> }> = {};
+    for (const guide of guides) {
+      const cat = categories.find((c) => c.id === guide.category_id);
+      if (!cat) continue;
+      if (!map[cat.id]) map[cat.id] = { category: cat, products: {} };
+      const tag = guide.product_tag || guide.title || "untitled";
+      if (!map[cat.id].products[tag]) map[cat.id].products[tag] = { icon_url: guide.icon_url, tag, guides: [] };
+      if (guide.icon_url && !map[cat.id].products[tag].icon_url) map[cat.id].products[tag].icon_url = guide.icon_url;
+      map[cat.id].products[tag].guides.push(guide);
+    }
+    // Sort Level 1: categories by sort_order
+    return Object.values(map).sort((a, b) => (a.category.sort_order ?? 0) - (b.category.sort_order ?? 0));
+  }, [guides, categories]);
 
   // Download helper: open preview in new window + trigger file download
   async function downloadFile(url: string, filename?: string) {
@@ -228,15 +233,15 @@ export default function Support() {
             </div>
           ) : (
             <div className="space-y-6">
-              {Object.values(guidesByCategory).map(({ category, products }) => (
+              {guidesByCategory.map(({ category, products }) => (
                 <div key={category.id} className="rounded-xl overflow-hidden" style={{ border: '1px solid #eee' }}>
                   {/* Category header (Level 1) */}
                   <div className="px-5 py-3 font-semibold text-sm" style={{ background: '#f0f1f2', color: '#0F1111', borderBottom: '1px solid #ddd' }}>
                     {category.name}
                   </div>
-                  {/* Products (Level 2) */}
+                  {/* Products (Level 2) — sorted by first guide's sort_order */}
                   <div className="p-4 space-y-4" style={{ background: '#fafafa' }}>
-                    {Object.values(products).map((product) => (
+                    {Object.values(products).sort((a, b) => (a.guides[0]?.sort_order ?? 0) - (b.guides[0]?.sort_order ?? 0)).map((product) => (
                       <div key={product.tag} className="rounded-lg overflow-hidden bg-white" style={{ border: '1px solid #e5e5e5' }}>
                         {/* Product header with icon (Level 2 header) */}
                         <div className="flex items-center gap-3 px-4 py-2.5" style={{ background: '#f7f8f8', borderBottom: '1px solid #eee' }}>
@@ -249,9 +254,9 @@ export default function Support() {
                           )}
                           <span className="text-sm font-medium" style={{ color: '#0F1111' }}>{product.tag}</span>
                         </div>
-                        {/* Language variants (Level 3) */}
+                        {/* Language variants (Level 3) — sorted by sort_order */}
                         <div className="divide-y divide-gray-100">
-                          {product.guides.map((guide) => (
+                          {product.guides.sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)).map((guide) => (
                             <div key={guide.id} className="flex flex-col sm:flex-row sm:items-center gap-2 px-4 py-3">
                               <div className="flex items-center gap-2 flex-1 min-w-0">
                                 <img
