@@ -2573,19 +2573,20 @@ CREATE POLICY "Allow all" ON public.installation_guides FOR ALL USING (true) WIT
               if (file.size > 10 * 1024 * 1024) { setError("File too large. Max 10MB."); e.target.value = ""; return; }
               setUploadingManual(true); setError("");
               try {
-                // Sanitize filename: remove non-ASCII chars, spaces → underscores
-                const safeName = file.name.replace(/[^\x00-\x7F]/g, "").replace(/\s+/g, "_").replace(/[^a-zA-Z0-9._-]/g, "");
-                const fileName = `guides/${Date.now()}_${safeName || "manual.pdf"}`;
+                // Completely replace filename, keep only extension
+                const ext = file.name.split('.').pop()?.toLowerCase() || "pdf";
+                const safeExt = ext.match(/^(jpg|jpeg|png|pdf)$/) ? ext : "pdf";
+                const fileName = `guides/${Date.now()}_manual.${safeExt}`;
                 let { data: upData, error: upErr } = await supabase.storage.from("instructions").upload(fileName, file, { contentType: file.type, upsert: false });
-                // Auto-create bucket if not exists
                 if (upErr && (upErr.message?.includes("bucket") || upErr.message?.includes("Bucket") || upErr.message?.includes("not found"))) {
-                  try {
-                    await supabase.storage.createBucket("instructions", { public: true, fileSizeLimit: 10485760 });
-                    const retry = await supabase.storage.from("instructions").upload(fileName, file, { contentType: file.type, upsert: false });
-                    upData = retry.data; upErr = retry.error;
-                  } catch { /* ignore create bucket error */ }
+                  try { await supabase.storage.createBucket("instructions", { public: true, fileSizeLimit: 10485760 }); } catch { /* exists */ }
                 }
-                if (upErr) { setError(upErr.message); setUploadingManual(false); e.target.value = ""; return; }
+                if (upErr) {
+                  if (upErr.message?.includes("row-level security") || upErr.message?.includes("RLS") || upErr.message?.includes("policy")) {
+                    setError('RLS policy blocks upload. Go to Supabase Dashboard > Storage > instructions > Policies, add policy with "Allowed operation: ALL" and expression: true');
+                  } else { setError(upErr.message); }
+                  setUploadingManual(false); e.target.value = ""; return;
+                }
                 const { data: urlData } = supabase.storage.from("instructions").getPublicUrl(upData!.path);
                 setManualUrl(urlData.publicUrl);
               } catch (err: any) { setError(err.message); }
