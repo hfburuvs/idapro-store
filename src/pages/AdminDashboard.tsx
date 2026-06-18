@@ -2596,7 +2596,9 @@ CREATE POLICY "Allow all" ON public.installation_guides FOR ALL USING (true) WIT
                 const ext = file.name.split('.').pop()?.toLowerCase() || "pdf";
                 const safeExt = ext.match(/^(jpg|jpeg|png|pdf)$/) ? ext : "pdf";
                 const fileName = `guides/${Date.now()}_manual.${safeExt}`;
-                let { data: upData, error: upErr } = await supabase.storage.from("instructions").upload(fileName, file, { contentType: file.type, upsert: false });
+                // Convert File to Blob to strip original filename (avoid Chinese chars in key)
+                const fileBlob = new Blob([await file.arrayBuffer()], { type: file.type });
+                let { data: upData, error: upErr } = await supabase.storage.from("instructions").upload(fileName, fileBlob, { contentType: file.type, upsert: false });
                 if (upErr && (upErr.message?.includes("bucket") || upErr.message?.includes("Bucket") || upErr.message?.includes("not found"))) {
                   try { await supabase.storage.createBucket("instructions", { public: true, fileSizeLimit: 10485760 }); } catch { /* exists */ }
                 }
