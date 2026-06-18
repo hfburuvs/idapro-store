@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router";
 import { supabase } from "@/lib/supabase";
 import { countryConfig } from "@/lib/i18n";
@@ -2460,7 +2460,7 @@ CREATE POLICY "Allow all" ON public.store_links FOR ALL USING (true) WITH CHECK 
 }
 
 /* ============ Installation Guides ============ */
-/* ============ Installation Guides (v2: icon + product_tag + country + sort) ============ */
+/* ============ Installation Guides (v3: 3-level + optimistic sort) ============ */
 function GuidesTab() {
   const [items, setItems] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
@@ -2476,6 +2476,7 @@ function GuidesTab() {
   const [saving, setSaving] = useState(false);
   const [uploadingManual, setUploadingManual] = useState(false);
   const [uploadingIcon, setUploadingIcon] = useState(false);
+  const [sorting, setSorting] = useState(false);
 
   async function load() {
     try {
@@ -2518,21 +2519,105 @@ function GuidesTab() {
     } catch { setError("SQL_REQUIRED"); }
   };
 
-  const handleSort = async (id: number, direction: "up" | "down") => {
-    const idx = items.findIndex((i) => i.id === id);
-    if (idx === -1) return;
-    if (direction === "up" && idx === 0) return;
-    if (direction === "down" && idx === items.length - 1) return;
-    const swapIdx = direction === "up" ? idx - 1 : idx + 1;
+  // Optimistic local swap + async save
+  const swapAndSave = async (
+    localSwap: (prev: any[]) => any[]
+  ) => {
+    setSorting(true);
+    const prevItems = [...items];
+    setItems(localSwap);
     try {
-      const targetOrder = items[swapIdx].sort_order ?? swapIdx;
-      const currentOrder = items[idx].sort_order ?? idx;
-      const { error: e1 } = await supabase.from("installation_guides").update({ sort_order: targetOrder }).eq("id", items[idx].id);
-      if (e1) throw e1;
-      const { error: e2 } = await supabase.from("installation_guides").update({ sort_order: currentOrder }).eq("id", items[swapIdx].id);
-      if (e2) throw e2;
-      load();
-    } catch (err: any) { setError(err.message || "Sort failed"); }
+      const updated = localSwap(prevItems);
+      const promises = updated.map((item, idx) =>
+        supabase.from("installation_guides").update({ sort_order: idx }).eq("id", item.id)
+      );
+      const results = await Promise.all(promises);
+      const firstError = results.find(r => r.error)?.error;
+      if (firstError) throw firstError;
+    } catch (err: any) {
+      setItems(prevItems);
+      setError(err.message || "Sort save failed");
+    }
+    setSorting(false);
+  };
+
+  // Group items by category_id → product_tag
+  const grouped = useMemo(() => {
+    const map: Record<number, { category: any; tags: Record<string, { icon_url: string; tag: string; guides: any[] }> }> = {};
+    for (const item of items) {
+      const cat = categories.find((c) => c.id === item.category_id);
+      if (!cat) continue;
+      if (!map[cat.id]) map[cat.id] = { category: cat, tags: {} };
+      const tag = item.product_tag || "untagged";
+      if (!map[cat.id].tags[tag]) map[cat.id].tags[tag] = { icon_url: item.icon_url, tag, guides: [] };
+      if (item.icon_url && !map[cat.id].tags[tag].icon_url) map[cat.id].tags[tag].icon_url = item.icon_url;
+      map[cat.id].tags[tag].guides.push(item);
+    }
+    return map;
+  }, [items, categories]);
+
+  const catEntries = Object.values(grouped);
+
+  // Sort handlers
+  const handleSortCategory = async (catIdx: number, dir: "up" | "down") => {
+    if (dir === "up" && catIdx === 0) return;
+    if (dir === "down" && catIdx === catEntries.length - 1) return;
+    const swapIdx = dir === "up" ? catIdx - 1 : catIdx + 1;
+    const catA = catEntries[catIdx].category;
+    const catB = catEntries[swapIdx].category;
+    const newOrderA = catB.sort_order ?? swapIdx;
+    const newOrderB = catA.sort_order ?? catIdx;
+    setCategories(prev => prev.map(c =>
+      c.id === catA.id ? { ...c, sort_order: newOrderA } :
+      c.id === catB.id ? { ...c, sort_order: newOrderB } : c
+    ));
+    try {
+      await Promise.all([
+        supabase.from("categories").update({ sort_order: newOrderA }).eq("id", catA.id),
+        supabase.from("categories").update({ sort_order: newOrderB }).eq("id", catB.id),
+      ]);
+    } catch (err: any) { setError(err.message); }
+  };
+
+  const handleSortTag = (catIdx: number, tagKey: string, dir: "up" | "down") => {
+    const cat = catEntries[catIdx];
+    const tagKeys = Object.keys(cat.tags);
+    const tagIdx = tagKeys.indexOf(tagKey);
+    if (tagIdx === -1) return;
+    if (dir === "up" && tagIdx === 0) return;
+    if (dir === "down" && tagIdx === tagKeys.length - 1) return;
+    const swapTagKey = dir === "up" ? tagKeys[tagIdx - 1] : tagKeys[tagIdx + 1];
+    // Swap sort_order of all guides in both tags
+    const tagAGuides = cat.tags[tagKey].guides;
+    const tagBGuides = cat.tags[swapTagKey].guides;
+    const allTagAOrders = tagAGuides.map(g => g.sort_order);
+    const allTagBOrders = tagBGuides.map(g => g.sort_order);
+    swapAndSave(prev => prev.map(item => {
+      if (tagAGuides.find(g => g.id === item.id)) {
+        const idx = tagAGuides.findIndex(g => g.id === item.id);
+        return { ...item, sort_order: allTagBOrders[idx] ?? item.sort_order };
+      }
+      if (tagBGuides.find(g => g.id === item.id)) {
+        const idx = tagBGuides.findIndex(g => g.id === item.id);
+        return { ...item, sort_order: allTagAOrders[idx] ?? item.sort_order };
+      }
+      return item;
+    }));
+  };
+
+  const handleSortItem = (itemId: number, dir: "up" | "down") => {
+    const idx = items.findIndex(i => i.id === itemId);
+    if (idx === -1) return;
+    if (dir === "up" && idx === 0) return;
+    if (dir === "down" && idx === items.length - 1) return;
+    const swapIdx = dir === "up" ? idx - 1 : idx + 1;
+    swapAndSave(prev => {
+      const next = [...prev];
+      const temp = next[idx].sort_order;
+      next[idx] = { ...next[idx], sort_order: next[swapIdx].sort_order };
+      next[swapIdx] = { ...next[swapIdx], sort_order: temp };
+      return next.sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -2623,8 +2708,9 @@ CREATE POLICY "Allow all" ON public.installation_guides FOR ALL USING (true) WIT
   return (
     <div className="space-y-4">
       {error && <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">{error}</div>}
+      {sorting && <div className="p-2 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-600 flex items-center gap-2"><Loader className="w-3 h-3 animate-spin" /> Saving sort order...</div>}
       <h2 className="text-xl font-bold text-gray-900">Installation Guides</h2>
-      <p className="text-sm text-gray-500">Add guides by product. Same product_tag shares the same icon. Set country_code for each language version.</p>
+      <p className="text-sm text-gray-500">3-level: Category → Product Tag → Language. Sort arrows work within each level.</p>
 
       {/* Form */}
       <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-gray-100 p-4 space-y-3">
@@ -2636,12 +2722,11 @@ CREATE POLICY "Allow all" ON public.installation_guides FOR ALL USING (true) WIT
           <input placeholder="Country code (e.g. us, de, es)" value={countryCode} onChange={(e) => setCountryCode(e.target.value.toLowerCase())} className="px-3 py-2 border border-gray-200 rounded-lg text-sm" />
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <input placeholder="Product tag (e.g. screen-protector) — shared icon" value={productTag} onChange={(e) => setProductTag(e.target.value)} className="px-3 py-2 border border-gray-200 rounded-lg text-sm" />
+          <input placeholder="Product tag — shared icon across languages" value={productTag} onChange={(e) => setProductTag(e.target.value)} className="px-3 py-2 border border-gray-200 rounded-lg text-sm" />
           <input placeholder="Guide Title" value={title} onChange={(e) => setTitle(e.target.value)} className="px-3 py-2 border border-gray-200 rounded-lg text-sm" />
         </div>
-        {/* Icon upload */}
         <div className="flex gap-2">
-          <input placeholder="Icon URL (auto-filled after upload, 64x64 PNG/JPG)" value={iconUrl} onChange={(e) => setIconUrl(e.target.value)} className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm" />
+          <input placeholder="Icon URL (auto-filled after upload)" value={iconUrl} onChange={(e) => setIconUrl(e.target.value)} className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm" />
           <label className={`cursor-pointer px-3 py-2 rounded-lg text-sm flex items-center gap-1.5 flex-shrink-0 transition-colors ${uploadingIcon ? "bg-gray-200 text-gray-500" : "bg-gray-100 hover:bg-gray-200 text-gray-700"}`}>
             {uploadingIcon ? <Loader className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
             {uploadingIcon ? "Uploading..." : "Upload Icon"}
@@ -2650,7 +2735,6 @@ CREATE POLICY "Allow all" ON public.installation_guides FOR ALL USING (true) WIT
           {iconUrl && <img src={iconUrl} alt="icon" className="w-8 h-8 rounded-full object-cover border border-gray-200" />}
         </div>
         <input placeholder="Video URL (Amazon/Youtube link)" value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
-        {/* Manual URL with upload */}
         <div className="flex gap-2">
           <input placeholder="Manual URL (auto-filled after upload)" value={manualUrl} onChange={(e) => setManualUrl(e.target.value)} className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm" />
           <label className={`cursor-pointer px-3 py-2 rounded-lg text-sm flex items-center gap-1.5 flex-shrink-0 transition-colors ${uploadingManual ? "bg-gray-200 text-gray-500" : "bg-gray-100 hover:bg-gray-200 text-gray-700"}`}>
@@ -2665,40 +2749,70 @@ CREATE POLICY "Allow all" ON public.installation_guides FOR ALL USING (true) WIT
         </div>
       </form>
 
-      {/* List */}
-      <div className="bg-white rounded-xl border border-gray-100 divide-y">
-        {items.length === 0 && <p className="text-sm text-gray-400 text-center py-8">No installation guides yet.</p>}
-        {items.map((item, idx) => {
-          const cat = categories.find((c) => c.id === item.category_id);
-          return (
-            <div key={item.id} className="flex items-center justify-between px-4 py-3">
-              <div className="flex items-center gap-3">
-                {item.icon_url ? (
-                  <img src={item.icon_url} alt="" className="w-8 h-8 rounded-full object-cover border border-gray-200 flex-shrink-0" />
-                ) : (
-                  <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
-                    <HelpCircle className="w-4 h-4 text-gray-400" />
+      {/* ===== 3-Level Display ===== */}
+      {items.length === 0 && <p className="text-sm text-gray-400 text-center py-8">No installation guides yet.</p>}
+
+      {catEntries.map((catEntry, catIdx) => (
+        <div key={catEntry.category.id} className="rounded-xl overflow-hidden" style={{ border: '1px solid #e5e5e5' }}>
+          {/* Level 1: Category Header */}
+          <div className="flex items-center justify-between px-4 py-3" style={{ background: '#131921', color: '#fff' }}>
+            <span className="text-sm font-bold">{catEntry.category.name}</span>
+            <div className="flex items-center gap-1">
+              <button onClick={() => handleSortCategory(catIdx, "up")} disabled={catIdx === 0} className="p-1 disabled:opacity-30" style={{ color: '#FF9900' }}><ArrowUp className="w-3.5 h-3.5" /></button>
+              <button onClick={() => handleSortCategory(catIdx, "down")} disabled={catIdx === catEntries.length - 1} className="p-1 disabled:opacity-30" style={{ color: '#FF9900' }}><ArrowDown className="w-3.5 h-3.5" /></button>
+            </div>
+          </div>
+
+          {/* Level 2: Product Tags */}
+          <div className="p-3 space-y-3" style={{ background: '#fafafa' }}>
+            {Object.entries(catEntry.tags).map(([tagKey, tagEntry], tagIdx, tagArr) => (
+              <div key={tagKey} className="rounded-lg overflow-hidden bg-white" style={{ border: '1px solid #eee' }}>
+                {/* Level 2: Tag Header */}
+                <div className="flex items-center justify-between px-4 py-2.5" style={{ background: '#f0f1f2', borderBottom: '1px solid #e5e5e5' }}>
+                  <div className="flex items-center gap-2">
+                    {tagEntry.icon_url ? (
+                      <img src={tagEntry.icon_url} alt="" className="w-8 h-8 rounded-full object-cover border border-gray-200" />
+                    ) : (
+                      <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
+                        <HelpCircle className="w-4 h-4 text-gray-500" />
+                      </div>
+                    )}
+                    <span className="text-sm font-semibold text-gray-800">{tagEntry.tag}</span>
+                    <span className="text-xs text-gray-400">({tagEntry.guides.length} versions)</span>
                   </div>
-                )}
-                <div>
-                  <p className="text-sm font-medium text-gray-900">{item.title || "Untitled"}</p>
-                  <p className="text-xs text-gray-400">
-                    {cat?.name || "Unknown"} | tag: {item.product_tag || "—"} | {item.country_code || "us"} {item.video_url && "| Video"} {item.manual_url && "| Manual"}
-                  </p>
+                  <div className="flex items-center gap-1">
+                    <button onClick={() => handleSortTag(catIdx, tagKey, "up")} disabled={tagIdx === 0} className="p-1 text-gray-500 hover:text-gray-700 disabled:opacity-30"><ArrowUp className="w-3.5 h-3.5" /></button>
+                    <button onClick={() => handleSortTag(catIdx, tagKey, "down")} disabled={tagIdx === tagArr.length - 1} className="p-1 text-gray-500 hover:text-gray-700 disabled:opacity-30"><ArrowDown className="w-3.5 h-3.5" /></button>
+                  </div>
+                </div>
+
+                {/* Level 3: Items */}
+                <div className="divide-y divide-gray-100">
+                  {tagEntry.guides.map((guide: any, gIdx: number, gArr: any[]) => (
+                    <div key={guide.id} className="flex items-center justify-between px-4 py-2.5">
+                      <div className="flex items-center gap-2">
+                        <img src={`https://flagcdn.com/w40/${guide.country_code === 'uk' ? 'gb' : guide.country_code}.png`} alt={guide.country_code} className="w-5 h-3.5 object-cover rounded-sm flex-shrink-0" />
+                        <span className="text-sm text-gray-700">{guide.title || tagEntry.tag}</span>
+                        {guide.video_url && <span className="text-xs px-1.5 py-0.5 rounded bg-orange-100 text-orange-700">Video</span>}
+                        {guide.manual_url && <span className="text-xs px-1.5 py-0.5 rounded bg-blue-100 text-blue-700">Manual</span>}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <button onClick={() => handleSortItem(guide.id, "up")} disabled={gIdx === 0} className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30"><ArrowUp className="w-3 h-3" /></button>
+                        <button onClick={() => handleSortItem(guide.id, "down")} disabled={gIdx === gArr.length - 1} className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30"><ArrowDown className="w-3 h-3" /></button>
+                        <button onClick={() => { setEditId(guide.id); setTitle(guide.title || ""); setCategoryId(String(guide.category_id)); setProductTag(guide.product_tag || ""); setIconUrl(guide.icon_url || ""); setCountryCode(guide.country_code || "us"); setVideoUrl(guide.video_url || ""); setManualUrl(guide.manual_url || ""); }} className="p-1 text-gray-400 hover:text-blue-600"><Pencil className="w-3.5 h-3.5" /></button>
+                        <button onClick={() => handleDelete(guide.id)} className="p-1 text-gray-400 hover:text-red-600"><Trash2 className="w-3.5 h-3.5" /></button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
-              <div className="flex items-center gap-1">
-                <button onClick={() => handleSort(item.id, "up")} disabled={idx === 0} className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30"><ArrowUp className="w-3.5 h-3.5" /></button>
-                <button onClick={() => handleSort(item.id, "down")} disabled={idx === items.length - 1} className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30"><ArrowDown className="w-3.5 h-3.5" /></button>
-                <button onClick={() => { setEditId(item.id); setTitle(item.title || ""); setCategoryId(String(item.category_id)); setProductTag(item.product_tag || ""); setIconUrl(item.icon_url || ""); setCountryCode(item.country_code || "us"); setVideoUrl(item.video_url || ""); setManualUrl(item.manual_url || ""); }} className="p-1.5 text-gray-400 hover:text-blue-600 transition-colors"><Pencil className="w-4 h-4" /></button>
-                <button onClick={() => handleDelete(item.id)} className="p-1.5 text-gray-400 hover:text-red-600 transition-colors"><Trash2 className="w-4 h-4" /></button>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+            ))}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
+
 
 // deployed
