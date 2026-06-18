@@ -2519,16 +2519,31 @@ function GuidesTab() {
     } catch { setError("SQL_REQUIRED"); }
   };
 
-  // Optimistic local swap + async save
-  const swapAndSave = async (
-    localSwap: (prev: any[]) => any[]
-  ) => {
+  // Group items by category_id → product_tag, return sorted array (not object)
+  const catEntries = useMemo(() => {
+    // 1. Build map
+    const map: Record<number, { category: any; tags: Record<string, { icon_url: string; tag: string; guides: any[] }> }> = {};
+    for (const item of items) {
+      const cat = categories.find((c) => c.id === item.category_id);
+      if (!cat) continue;
+      if (!map[cat.id]) map[cat.id] = { category: cat, tags: {} };
+      const tag = item.product_tag || "untagged";
+      if (!map[cat.id].tags[tag]) map[cat.id].tags[tag] = { icon_url: item.icon_url, tag, guides: [] };
+      if (item.icon_url && !map[cat.id].tags[tag].icon_url) map[cat.id].tags[tag].icon_url = item.icon_url;
+      map[cat.id].tags[tag].guides.push(item);
+    }
+    // 2. Convert to array, sorted by category.sort_order
+    return Object.values(map).sort((a, b) => (a.category.sort_order ?? 0) - (b.category.sort_order ?? 0));
+  }, [items, categories]);
+
+  // Optimistic swap helper
+  const swapAndSave = async (localSwap: (prev: any[]) => any[]) => {
     setSorting(true);
     const prevItems = [...items];
-    setItems(localSwap);
+    const nextItems = localSwap(prevItems);
+    setItems(nextItems);
     try {
-      const updated = localSwap(prevItems);
-      const promises = updated.map((item, idx) =>
+      const promises = nextItems.map((item, idx) =>
         supabase.from("installation_guides").update({ sort_order: idx }).eq("id", item.id)
       );
       const results = await Promise.all(promises);
@@ -2541,44 +2556,33 @@ function GuidesTab() {
     setSorting(false);
   };
 
-  // Group items by category_id → product_tag
-  const grouped = useMemo(() => {
-    const map: Record<number, { category: any; tags: Record<string, { icon_url: string; tag: string; guides: any[] }> }> = {};
-    for (const item of items) {
-      const cat = categories.find((c) => c.id === item.category_id);
-      if (!cat) continue;
-      if (!map[cat.id]) map[cat.id] = { category: cat, tags: {} };
-      const tag = item.product_tag || "untagged";
-      if (!map[cat.id].tags[tag]) map[cat.id].tags[tag] = { icon_url: item.icon_url, tag, guides: [] };
-      if (item.icon_url && !map[cat.id].tags[tag].icon_url) map[cat.id].tags[tag].icon_url = item.icon_url;
-      map[cat.id].tags[tag].guides.push(item);
-    }
-    return map;
-  }, [items, categories]);
-
-  const catEntries = Object.values(grouped);
-
-  // Sort handlers
+  // Level 1: Category sort — swap category.sort_order in Supabase
   const handleSortCategory = async (catIdx: number, dir: "up" | "down") => {
     if (dir === "up" && catIdx === 0) return;
     if (dir === "down" && catIdx === catEntries.length - 1) return;
     const swapIdx = dir === "up" ? catIdx - 1 : catIdx + 1;
     const catA = catEntries[catIdx].category;
     const catB = catEntries[swapIdx].category;
-    const newOrderA = catB.sort_order ?? swapIdx;
-    const newOrderB = catA.sort_order ?? catIdx;
-    setCategories(prev => prev.map(c =>
-      c.id === catA.id ? { ...c, sort_order: newOrderA } :
-      c.id === catB.id ? { ...c, sort_order: newOrderB } : c
-    ));
+    const orderA = catB.sort_order ?? swapIdx;
+    const orderB = catA.sort_order ?? catIdx;
+    // Optimistic: update local categories state
+    const nextCats = categories.map(c =>
+      c.id === catA.id ? { ...c, sort_order: orderA } :
+      c.id === catB.id ? { ...c, sort_order: orderB } : c
+    );
+    setCategories(nextCats);
     try {
       await Promise.all([
-        supabase.from("categories").update({ sort_order: newOrderA }).eq("id", catA.id),
-        supabase.from("categories").update({ sort_order: newOrderB }).eq("id", catB.id),
+        supabase.from("categories").update({ sort_order: orderA }).eq("id", catA.id),
+        supabase.from("categories").update({ sort_order: orderB }).eq("id", catB.id),
       ]);
-    } catch (err: any) { setError(err.message); }
+    } catch (err: any) {
+      setCategories(categories); // rollback
+      setError(err.message);
+    }
   };
 
+  // Level 2: Tag sort — swap sort_order of ALL guides between two tags
   const handleSortTag = (catIdx: number, tagKey: string, dir: "up" | "down") => {
     const cat = catEntries[catIdx];
     const tagKeys = Object.keys(cat.tags);
@@ -2587,22 +2591,16 @@ function GuidesTab() {
     if (dir === "up" && tagIdx === 0) return;
     if (dir === "down" && tagIdx === tagKeys.length - 1) return;
     const swapTagKey = dir === "up" ? tagKeys[tagIdx - 1] : tagKeys[tagIdx + 1];
-    // Swap sort_order of all guides in both tags
-    const tagAGuides = cat.tags[tagKey].guides;
-    const tagBGuides = cat.tags[swapTagKey].guides;
-    const allTagAOrders = tagAGuides.map(g => g.sort_order);
-    const allTagBOrders = tagBGuides.map(g => g.sort_order);
+    const guidesA = cat.tags[tagKey].guides;
+    const guidesB = cat.tags[swapTagKey].guides;
+    // Build id→newSortOrder map
+    const orderMap: Record<number, number> = {};
+    guidesA.forEach((g: any, i: number) => { orderMap[g.id] = guidesB[i]?.sort_order ?? g.sort_order ?? 0; });
+    guidesB.forEach((g: any, i: number) => { orderMap[g.id] = guidesA[i]?.sort_order ?? g.sort_order ?? 0; });
     swapAndSave(prev => prev.map(item => {
-      if (tagAGuides.find(g => g.id === item.id)) {
-        const idx = tagAGuides.findIndex(g => g.id === item.id);
-        return { ...item, sort_order: allTagBOrders[idx] ?? item.sort_order };
-      }
-      if (tagBGuides.find(g => g.id === item.id)) {
-        const idx = tagBGuides.findIndex(g => g.id === item.id);
-        return { ...item, sort_order: allTagAOrders[idx] ?? item.sort_order };
-      }
+      if (orderMap[item.id] !== undefined) return { ...item, sort_order: orderMap[item.id] };
       return item;
-    }));
+    }).sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)));
   };
 
   const handleSortItem = (itemId: number, dir: "up" | "down") => {
