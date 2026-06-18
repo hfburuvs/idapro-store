@@ -2407,7 +2407,7 @@ function StoreLinksTab() {
 );
 ALTER TABLE public.store_links ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Allow all" ON public.store_links FOR ALL USING (true) WITH CHECK (true);`}</pre>
-          <button onClick={handleCreateTable} className="px-4 py-2 bg-brand-600 text-white rounded-lg text-sm font-medium hover:bg-brand-700 transition-colors">Try Auto-Create</button>
+          <button onClick={handleCreateTable} className="px-4 py-2 bg-[#FF9900] text-white rounded-lg text-sm font-medium hover:bg-[#E68A00] transition-colors">Try Auto-Create</button>
         </div>
       </div>
     );
@@ -2428,7 +2428,7 @@ CREATE POLICY "Allow all" ON public.store_links FOR ALL USING (true) WITH CHECK 
           <input placeholder="URL (e.g. https://amazon.com/...)" value={url} onChange={(e) => setUrl(e.target.value)} className="px-3 py-2 border border-gray-200 rounded-lg text-sm" required />
         </div>
         <div className="flex gap-2">
-          <button type="submit" disabled={saving} className="px-4 py-2 bg-brand-600 text-white rounded-lg text-sm font-medium disabled:opacity-50">{editId ? "Update" : "Add"} Link</button>
+          <button type="submit" disabled={saving} className="px-4 py-2 bg-[#FF9900] text-white rounded-lg text-sm font-medium disabled:opacity-50">{editId ? "Update" : "Add"} Link</button>
           {editId && <button type="button" onClick={() => { setEditId(null); setLabel(""); setUrl(""); setCountryCode("us"); }} className="px-3 py-2 bg-gray-100 rounded-lg text-sm">Cancel</button>}
         </div>
       </form>
@@ -2540,7 +2540,7 @@ function GuidesTab() {
 );
 ALTER TABLE public.installation_guides ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Allow all" ON public.installation_guides FOR ALL USING (true) WITH CHECK (true);`}</pre>
-          <button onClick={handleCreateTable} className="px-4 py-2 bg-brand-600 text-white rounded-lg text-sm font-medium hover:bg-brand-700 transition-colors">Try Auto-Create</button>
+          <button onClick={handleCreateTable} className="px-4 py-2 bg-[#FF9900] text-white rounded-lg text-sm font-medium hover:bg-[#E68A00] transition-colors">Try Auto-Create</button>
         </div>
       </div>
     );
@@ -2562,7 +2562,7 @@ CREATE POLICY "Allow all" ON public.installation_guides FOR ALL USING (true) WIT
         <input placeholder="Video URL (Amazon/Youtube link)" value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
         <input placeholder="Manual URL (JPG/PNG/PDF download link)" value={manualUrl} onChange={(e) => setManualUrl(e.target.value)} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
         <div className="flex gap-2">
-          <button type="submit" disabled={saving} className="px-4 py-2 bg-brand-600 text-white rounded-lg text-sm font-medium disabled:opacity-50">{editId ? "Update" : "Add"} Guide</button>
+          <button type="submit" disabled={saving} className="px-4 py-2 bg-[#FF9900] text-white rounded-lg text-sm font-medium disabled:opacity-50">{editId ? "Update" : "Add"} Guide</button>
           {editId && <button type="button" onClick={() => { setEditId(null); setTitle(""); setCategoryId(""); setVideoUrl(""); setManualUrl(""); }} className="px-3 py-2 bg-gray-100 rounded-lg text-sm">Cancel</button>}
         </div>
       </form>
