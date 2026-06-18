@@ -229,34 +229,37 @@ export default function Support() {
           ) : (
             <div className="space-y-6">
               {Object.values(guidesByCategory).map(({ category, products }) => (
-                <div key={category.id} className="rounded-lg overflow-hidden" style={{ border: '1px solid #eee' }}>
-                  <div className="px-5 py-3 font-semibold text-sm" style={{ background: '#f7f8f8', color: '#0F1111' }}>
+                <div key={category.id} className="rounded-xl overflow-hidden" style={{ border: '1px solid #eee' }}>
+                  {/* Category header (Level 1) */}
+                  <div className="px-5 py-3 font-semibold text-sm" style={{ background: '#f0f1f2', color: '#0F1111', borderBottom: '1px solid #ddd' }}>
                     {category.name}
                   </div>
-                  <div className="p-5 space-y-5">
+                  {/* Products (Level 2) */}
+                  <div className="p-4 space-y-4" style={{ background: '#fafafa' }}>
                     {Object.values(products).map((product) => (
-                      <div key={product.tag} className="flex gap-4">
-                        {/* Product icon (left side) */}
-                        <div className="flex-shrink-0">
+                      <div key={product.tag} className="rounded-lg overflow-hidden bg-white" style={{ border: '1px solid #e5e5e5' }}>
+                        {/* Product header with icon (Level 2 header) */}
+                        <div className="flex items-center gap-3 px-4 py-2.5" style={{ background: '#f7f8f8', borderBottom: '1px solid #eee' }}>
                           {product.icon_url ? (
-                            <img src={product.icon_url} alt="" className="w-12 h-12 rounded-full object-cover border border-gray-200" />
+                            <img src={product.icon_url} alt="" className="w-10 h-10 rounded-full object-cover border border-gray-200 flex-shrink-0" />
                           ) : (
-                            <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">
-                              <HelpCircle className="w-5 h-5" style={{ color: '#999' }} />
+                            <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: '#e5e7eb' }}>
+                              <HelpCircle className="w-5 h-5" style={{ color: '#9ca3af' }} />
                             </div>
                           )}
+                          <span className="text-sm font-medium" style={{ color: '#0F1111' }}>{product.tag}</span>
                         </div>
-                        {/* Language variants (right side) */}
-                        <div className="flex-1 space-y-2">
+                        {/* Language variants (Level 3) */}
+                        <div className="divide-y divide-gray-100">
                           {product.guides.map((guide) => (
-                            <div key={guide.id} className="flex flex-col sm:flex-row sm:items-center gap-2 p-3 rounded-lg" style={{ background: '#f7f8f8' }}>
-                              <div className="flex items-center gap-2 flex-1">
+                            <div key={guide.id} className="flex flex-col sm:flex-row sm:items-center gap-2 px-4 py-3">
+                              <div className="flex items-center gap-2 flex-1 min-w-0">
                                 <img
                                   src={`https://flagcdn.com/w40/${guide.country_code === 'uk' ? 'gb' : guide.country_code}.png`}
                                   alt={guide.country_code}
                                   className="w-6 h-4 object-cover rounded-sm flex-shrink-0"
                                 />
-                                <span className="text-sm font-medium" style={{ color: '#0F1111' }}>{guide.title || product.tag}</span>
+                                <span className="text-sm truncate" style={{ color: '#0F1111' }}>{guide.title || product.tag}</span>
                               </div>
                               <div className="flex items-center gap-2 flex-shrink-0">
                                 {guide.video_url && (

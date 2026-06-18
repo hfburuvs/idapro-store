@@ -2524,13 +2524,15 @@ function GuidesTab() {
     if (direction === "up" && idx === 0) return;
     if (direction === "down" && idx === items.length - 1) return;
     const swapIdx = direction === "up" ? idx - 1 : idx + 1;
-    const newItems = [...items];
-    const temp = newItems[idx].sort_order;
-    newItems[idx].sort_order = newItems[swapIdx].sort_order;
-    newItems[swapIdx].sort_order = temp;
-    await supabase.from("installation_guides").update({ sort_order: newItems[idx].sort_order }).eq("id", newItems[idx].id);
-    await supabase.from("installation_guides").update({ sort_order: newItems[swapIdx].sort_order }).eq("id", newItems[swapIdx].id);
-    load();
+    try {
+      const targetOrder = items[swapIdx].sort_order ?? swapIdx;
+      const currentOrder = items[idx].sort_order ?? idx;
+      const { error: e1 } = await supabase.from("installation_guides").update({ sort_order: targetOrder }).eq("id", items[idx].id);
+      if (e1) throw e1;
+      const { error: e2 } = await supabase.from("installation_guides").update({ sort_order: currentOrder }).eq("id", items[swapIdx].id);
+      if (e2) throw e2;
+      load();
+    } catch (err: any) { setError(err.message || "Sort failed"); }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
