@@ -223,8 +223,7 @@ export default function Support() {
                           {guide.manual_url && (
                             <a
                               href={guide.manual_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
+                              download
                               className="inline-flex items-center gap-1.5 px-4 py-2 rounded-md text-xs font-semibold transition-all"
                               style={{ background: '#fff', color: '#0F1111', border: '1px solid #d5d9d9' }}
                             >

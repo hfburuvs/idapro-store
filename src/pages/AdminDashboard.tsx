@@ -2560,7 +2560,32 @@ CREATE POLICY "Allow all" ON public.installation_guides FOR ALL USING (true) WIT
           <input placeholder="Guide Title (e.g. Screen Protector Install)" value={title} onChange={(e) => setTitle(e.target.value)} className="px-3 py-2 border border-gray-200 rounded-lg text-sm" />
         </div>
         <input placeholder="Video URL (Amazon/Youtube link)" value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
-        <input placeholder="Manual URL (JPG/PNG/PDF download link)" value={manualUrl} onChange={(e) => setManualUrl(e.target.value)} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
+        {/* Manual URL with upload */}
+        <div className="flex gap-2">
+          <input placeholder="Manual URL (auto-filled after upload)" value={manualUrl} onChange={(e) => setManualUrl(e.target.value)} className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm" />
+          <label className="cursor-pointer px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm text-gray-700 flex items-center gap-1.5 flex-shrink-0 transition-colors">
+            <Upload className="w-4 h-4" /> Upload Manual
+            <input type="file" accept=".jpg,.jpeg,.png,.pdf" className="hidden" onChange={async (e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              if (file.size > 10 * 1024 * 1024) { setError("File too large. Max 10MB."); e.target.value = ""; return; }
+              setSaving(true); setError("");
+              try {
+                const fileName = `guides/${Date.now()}_${file.name}`;
+                const { data: upData, error: upErr } = await supabase.storage.from("instructions").upload(fileName, file, { contentType: file.type, upsert: false });
+                if (upErr) {
+                  if (upErr.message?.includes("bucket") || upErr.message?.includes("Bucket")) {
+                    setError('Storage bucket "instructions" not found. Please create it in Supabase Dashboard > Storage.');
+                  } else { setError(upErr.message); }
+                  setSaving(false); e.target.value = ""; return;
+                }
+                const { data: urlData } = supabase.storage.from("instructions").getPublicUrl(upData.path);
+                setManualUrl(urlData.publicUrl);
+              } catch (err: any) { setError(err.message); }
+              setSaving(false); e.target.value = "";
+            }} />
+          </label>
+        </div>
         <div className="flex gap-2">
           <button type="submit" disabled={saving} className="px-4 py-2 bg-[#FF9900] text-white rounded-lg text-sm font-medium disabled:opacity-50">{editId ? "Update" : "Add"} Guide</button>
           {editId && <button type="button" onClick={() => { setEditId(null); setTitle(""); setCategoryId(""); setVideoUrl(""); setManualUrl(""); }} className="px-3 py-2 bg-gray-100 rounded-lg text-sm">Cancel</button>}
