@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 
 type Tab = "dashboard" | "products" | "messages" | "categories" | "brands"
-  | "countries" | "carousel" | "navigation" | "settings" | "seo" | "analytics" | "subscribers" | "video" | "reset";
+  | "countries" | "carousel" | "navigation" | "settings" | "seo" | "analytics" | "subscribers" | "video" | "storelinks" | "guides" | "reset";
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -38,6 +38,8 @@ export default function AdminDashboard() {
     { key: "carousel", label: "Carousel", icon: Image },
     { key: "video", label: "Videos", icon: Video },
     { key: "navigation", label: "Navigation", icon: Navigation },
+    { key: "storelinks", label: "Store Links", icon: Globe },
+    { key: "guides", label: "Guides", icon: BookOpen },
     { key: "settings", label: "Settings", icon: Settings },
     { key: "seo", label: "SEO", icon: Globe },
     { key: "analytics", label: "Analytics", icon: Code2 },
@@ -82,6 +84,8 @@ export default function AdminDashboard() {
             {tab === "carousel" && <CarouselTab />}
             {tab === "video" && <VideosTab />}
             {tab === "navigation" && <NavigationTab />}
+            {tab === "storelinks" && <StoreLinksTab />}
+            {tab === "guides" && <GuidesTab />}
             {tab === "settings" && <SettingsTab />}
             {tab === "seo" && <SeoTab />}
             {tab === "analytics" && <AnalyticsTab />}
@@ -2322,5 +2326,264 @@ function parseCSVLine(line: string): string[] {
     else { current += char; }
   }
   result.push(current.trim());
-  return result.map((v) => v.replace(/^"|"$/g, ""));
+  return result.map((v) => v.trim());
+}
+
+/* ============ Store Links ============ */
+function StoreLinksTab() {
+  const [items, setItems] = useState<any[]>([]);
+  const [label, setLabel] = useState("");
+  const [url, setUrl] = useState("");
+  const [countryCode, setCountryCode] = useState("us");
+  const [editId, setEditId] = useState<number | null>(null);
+  const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  async function load() {
+    try {
+      const { data, error: err } = await supabase.from("store_links").select("*").order("sort_order", { ascending: true });
+      if (err) {
+        if (err.message?.includes("Could not find the table") || err.code === "PGRST205") {
+          setItems([]); setError("TABLE_NOT_FOUND");
+        } else { setError(err.message); }
+      } else { setItems(data || []); setError(""); }
+    } catch (err: any) { setError(err.message); }
+  }
+
+  useEffect(() => { load(); }, []);
+
+  const handleCreateTable = async () => {
+    try {
+      const { error } = await supabase.rpc("exec_sql", { sql: `
+        CREATE TABLE IF NOT EXISTS public.store_links (
+          id SERIAL PRIMARY KEY,
+          country_code TEXT NOT NULL DEFAULT 'us',
+          label TEXT NOT NULL,
+          url TEXT NOT NULL,
+          sort_order INTEGER DEFAULT 0,
+          is_active BOOLEAN DEFAULT true,
+          created_at TIMESTAMPTZ DEFAULT NOW()
+        );
+        ALTER TABLE public.store_links ENABLE ROW LEVEL SECURITY;
+        CREATE POLICY "Allow all" ON public.store_links FOR ALL USING (true) WITH CHECK (true);
+      ` });
+      if (error) throw error;
+      setError(""); load();
+    } catch { setError("SQL_REQUIRED"); }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault(); setSaving(true); setError("");
+    try {
+      const data = { country_code: countryCode, label, url, sort_order: editId ? undefined : items.length };
+      if (editId) { await supabase.from("store_links").update(data).eq("id", editId); }
+      else { await supabase.from("store_links").insert(data); }
+      setLabel(""); setUrl(""); setCountryCode("us"); setEditId(null); load();
+    } catch (err: any) { setError(err.message); }
+    setSaving(false);
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!confirm("Delete this store link?")) return;
+    try { await supabase.from("store_links").delete().eq("id", id); load(); }
+    catch (err: any) { setError(err.message); }
+  };
+
+  if (error === "TABLE_NOT_FOUND" || error === "SQL_REQUIRED") {
+    return (
+      <div className="space-y-4">
+        <h2 className="text-xl font-bold text-gray-900">Store Links</h2>
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+          <h3 className="font-semibold text-amber-800 mb-2">Table Not Found</h3>
+          <p className="text-sm text-amber-700 mb-4">The store_links table needs to be created in your Supabase database.</p>
+          <pre className="bg-white border border-amber-200 rounded-lg p-3 text-xs text-gray-700 overflow-x-auto mb-4">{`CREATE TABLE IF NOT EXISTS public.store_links (
+  id SERIAL PRIMARY KEY,
+  country_code TEXT NOT NULL DEFAULT 'us',
+  label TEXT NOT NULL,
+  url TEXT NOT NULL,
+  sort_order INTEGER DEFAULT 0,
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE public.store_links ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow all" ON public.store_links FOR ALL USING (true) WITH CHECK (true);`}</pre>
+          <button onClick={handleCreateTable} className="px-4 py-2 bg-brand-600 text-white rounded-lg text-sm font-medium hover:bg-brand-700 transition-colors">Try Auto-Create</button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {error && <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">{error}</div>}
+      <h2 className="text-xl font-bold text-gray-900">Store Links</h2>
+      <p className="text-sm text-gray-500">Manage Amazon store links displayed on the Support page. Visitors can click these to jump to your store in different countries.</p>
+      <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-gray-100 p-4 space-y-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <select value={countryCode} onChange={(e) => setCountryCode(e.target.value)} className="px-3 py-2 border border-gray-200 rounded-lg text-sm">
+            <option value="us">US</option><option value="uk">UK</option><option value="de">DE</option>
+            <option value="es">ES</option><option value="it">IT</option><option value="fr">FR</option>
+          </select>
+          <input placeholder="Label (e.g. US Store)" value={label} onChange={(e) => setLabel(e.target.value)} className="px-3 py-2 border border-gray-200 rounded-lg text-sm" required />
+          <input placeholder="URL (e.g. https://amazon.com/...)" value={url} onChange={(e) => setUrl(e.target.value)} className="px-3 py-2 border border-gray-200 rounded-lg text-sm" required />
+        </div>
+        <div className="flex gap-2">
+          <button type="submit" disabled={saving} className="px-4 py-2 bg-brand-600 text-white rounded-lg text-sm font-medium disabled:opacity-50">{editId ? "Update" : "Add"} Link</button>
+          {editId && <button type="button" onClick={() => { setEditId(null); setLabel(""); setUrl(""); setCountryCode("us"); }} className="px-3 py-2 bg-gray-100 rounded-lg text-sm">Cancel</button>}
+        </div>
+      </form>
+      <div className="bg-white rounded-xl border border-gray-100 divide-y">
+        {items.length === 0 && <p className="text-sm text-gray-400 text-center py-8">No store links yet.</p>}
+        {items.map((item) => (
+          <div key={item.id} className="flex items-center justify-between px-4 py-3">
+            <div className="flex items-center gap-3">
+              <img src={`https://flagcdn.com/w40/${item.country_code === 'uk' ? 'gb' : item.country_code}.png`} alt={item.country_code} className="w-6 h-4 object-cover rounded-sm" />
+              <div>
+                <p className="text-sm font-medium text-gray-900">{item.label}</p>
+                <p className="text-xs text-gray-400">{item.url}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-1">
+              <button onClick={() => { setEditId(item.id); setLabel(item.label); setUrl(item.url); setCountryCode(item.country_code); }} className="p-1.5 text-gray-400 hover:text-blue-600 transition-colors"><Pencil className="w-4 h-4" /></button>
+              <button onClick={() => handleDelete(item.id)} className="p-1.5 text-gray-400 hover:text-red-600 transition-colors"><Trash2 className="w-4 h-4" /></button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ============ Installation Guides ============ */
+function GuidesTab() {
+  const [items, setItems] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [title, setTitle] = useState("");
+  const [categoryId, setCategoryId] = useState("");
+  const [videoUrl, setVideoUrl] = useState("");
+  const [manualUrl, setManualUrl] = useState("");
+  const [editId, setEditId] = useState<number | null>(null);
+  const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  async function load() {
+    try {
+      const [{ data: guidesData, error: guidesErr }, { data: catsData }] = await Promise.all([
+        supabase.from("installation_guides").select("*").order("sort_order", { ascending: true }),
+        supabase.from("categories").select("*").order("sort_order", { ascending: true }),
+      ]);
+      setCategories(catsData || []);
+      if (guidesErr) {
+        if (guidesErr.message?.includes("Could not find the table") || guidesErr.code === "PGRST205") {
+          setItems([]); setError("TABLE_NOT_FOUND");
+        } else { setError(guidesErr.message); }
+      } else { setItems(guidesData || []); setError(""); }
+    } catch (err: any) { setError(err.message); }
+  }
+
+  useEffect(() => { load(); }, []);
+
+  const handleCreateTable = async () => {
+    try {
+      const { error } = await supabase.rpc("exec_sql", { sql: `
+        CREATE TABLE IF NOT EXISTS public.installation_guides (
+          id SERIAL PRIMARY KEY,
+          category_id INTEGER NOT NULL,
+          title TEXT,
+          video_url TEXT,
+          manual_url TEXT,
+          sort_order INTEGER DEFAULT 0,
+          is_active BOOLEAN DEFAULT true,
+          created_at TIMESTAMPTZ DEFAULT NOW()
+        );
+        ALTER TABLE public.installation_guides ENABLE ROW LEVEL SECURITY;
+        CREATE POLICY "Allow all" ON public.installation_guides FOR ALL USING (true) WITH CHECK (true);
+      ` });
+      if (error) throw error;
+      setError(""); load();
+    } catch { setError("SQL_REQUIRED"); }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault(); setSaving(true); setError("");
+    try {
+      const data = { category_id: parseInt(categoryId), title, video_url: videoUrl, manual_url: manualUrl, sort_order: editId ? undefined : items.length };
+      if (editId) { await supabase.from("installation_guides").update(data).eq("id", editId); }
+      else { await supabase.from("installation_guides").insert(data); }
+      setTitle(""); setCategoryId(""); setVideoUrl(""); setManualUrl(""); setEditId(null); load();
+    } catch (err: any) { setError(err.message); }
+    setSaving(false);
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!confirm("Delete this guide?")) return;
+    try { await supabase.from("installation_guides").delete().eq("id", id); load(); }
+    catch (err: any) { setError(err.message); }
+  };
+
+  if (error === "TABLE_NOT_FOUND" || error === "SQL_REQUIRED") {
+    return (
+      <div className="space-y-4">
+        <h2 className="text-xl font-bold text-gray-900">Installation Guides</h2>
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+          <h3 className="font-semibold text-amber-800 mb-2">Table Not Found</h3>
+          <p className="text-sm text-amber-700 mb-4">The installation_guides table needs to be created in your Supabase database.</p>
+          <pre className="bg-white border border-amber-200 rounded-lg p-3 text-xs text-gray-700 overflow-x-auto mb-4">{`CREATE TABLE IF NOT EXISTS public.installation_guides (
+  id SERIAL PRIMARY KEY,
+  category_id INTEGER NOT NULL,
+  title TEXT,
+  video_url TEXT,
+  manual_url TEXT,
+  sort_order INTEGER DEFAULT 0,
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE public.installation_guides ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow all" ON public.installation_guides FOR ALL USING (true) WITH CHECK (true);`}</pre>
+          <button onClick={handleCreateTable} className="px-4 py-2 bg-brand-600 text-white rounded-lg text-sm font-medium hover:bg-brand-700 transition-colors">Try Auto-Create</button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {error && <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">{error}</div>}
+      <h2 className="text-xl font-bold text-gray-900">Installation Guides</h2>
+      <p className="text-sm text-gray-500">Manage installation videos and manuals by product category. Video URLs should link to Amazon/Youtube. Manual URLs can be JPG/PNG/PDF file links (upload to Supabase Storage or external CDN).</p>
+      <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-gray-100 p-4 space-y-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className="px-3 py-2 border border-gray-200 rounded-lg text-sm" required>
+            <option value="">Select Category</option>
+            {categories.map((cat) => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
+          </select>
+          <input placeholder="Guide Title (e.g. Screen Protector Install)" value={title} onChange={(e) => setTitle(e.target.value)} className="px-3 py-2 border border-gray-200 rounded-lg text-sm" />
+        </div>
+        <input placeholder="Video URL (Amazon/Youtube link)" value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
+        <input placeholder="Manual URL (JPG/PNG/PDF download link)" value={manualUrl} onChange={(e) => setManualUrl(e.target.value)} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
+        <div className="flex gap-2">
+          <button type="submit" disabled={saving} className="px-4 py-2 bg-brand-600 text-white rounded-lg text-sm font-medium disabled:opacity-50">{editId ? "Update" : "Add"} Guide</button>
+          {editId && <button type="button" onClick={() => { setEditId(null); setTitle(""); setCategoryId(""); setVideoUrl(""); setManualUrl(""); }} className="px-3 py-2 bg-gray-100 rounded-lg text-sm">Cancel</button>}
+        </div>
+      </form>
+      <div className="bg-white rounded-xl border border-gray-100 divide-y">
+        {items.length === 0 && <p className="text-sm text-gray-400 text-center py-8">No installation guides yet.</p>}
+        {items.map((item) => {
+          const cat = categories.find((c) => c.id === item.category_id);
+          return (
+            <div key={item.id} className="flex items-center justify-between px-4 py-3">
+              <div>
+                <p className="text-sm font-medium text-gray-900">{item.title || "Untitled"}</p>
+                <p className="text-xs text-gray-400">Category: {cat?.name || "Unknown"} {item.video_url && "| Video"} {item.manual_url && "| Manual"}</p>
+              </div>
+              <div className="flex items-center gap-1">
+                <button onClick={() => { setEditId(item.id); setTitle(item.title || ""); setCategoryId(String(item.category_id)); setVideoUrl(item.video_url || ""); setManualUrl(item.manual_url || ""); }} className="p-1.5 text-gray-400 hover:text-blue-600 transition-colors"><Pencil className="w-4 h-4" /></button>
+                <button onClick={() => handleDelete(item.id)} className="p-1.5 text-gray-400 hover:text-red-600 transition-colors"><Trash2 className="w-4 h-4" /></button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
 }

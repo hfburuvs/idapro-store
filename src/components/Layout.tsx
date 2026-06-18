@@ -178,7 +178,7 @@ export default function Layout({ children }: { children: ReactNode }) {
   const metaDescription = seoMap["metaDescription"] || settingsMap["metaDescription"] || "Premium screen protectors and accessories for cameras and smartwatches.";
   const cleanPath = location.pathname.replace(/^\/(de|es|it|fr|uk)\b/, "") || "/";
   const siteTagline = settingsMap["siteTagline"] || "";
-  const pageTitle = cleanPath === "/" ? (siteTagline ? `${siteTitle} - ${siteTagline}` : siteTitle) : cleanPath === "/contact" ? `${t("contact")} - ${siteTitle}` : cleanPath === "/about" ? `${t("about")} - ${siteTitle}` : cleanPath.startsWith("/product/") ? `${t("products")} - ${siteTitle}` : cleanPath.startsWith("/category/") ? `${t("categories")} - ${siteTitle}` : siteTitle;
+  const pageTitle = cleanPath === "/" ? (siteTagline ? `${siteTitle} - ${siteTagline}` : siteTitle) : cleanPath === "/support" ? `${t("support") || "Support"} - ${siteTitle}` : cleanPath === "/about" ? `${t("about")} - ${siteTitle}` : cleanPath.startsWith("/product/") ? `${t("products")} - ${siteTitle}` : cleanPath.startsWith("/category/") ? `${t("categories")} - ${siteTitle}` : siteTitle;
 
   // Country flag image URL from flagcdn (uses ISO 3166-1 alpha-2 codes)
   // Note: UK uses 'gb' as ISO code, so we map internal codes to ISO codes
@@ -247,8 +247,8 @@ export default function Layout({ children }: { children: ReactNode }) {
             <Link to={path("/about")} className="text-sm font-medium px-3 py-2 rounded-sm transition-colors" style={{ border: '1px solid transparent' }} onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#fff')} onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'transparent')}>
               {t("about")}
             </Link>
-            <Link to={path("/contact")} className="text-sm font-medium px-3 py-2 rounded-sm transition-colors" style={{ border: '1px solid transparent' }} onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#fff')} onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'transparent')}>
-              {t("contact")}
+            <Link to={path("/support")} className="text-sm font-medium px-3 py-2 rounded-sm transition-colors" style={{ border: '1px solid transparent' }} onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#fff')} onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'transparent')}>
+              {t("support") || "Support"}
             </Link>
           </nav>
 
@@ -291,7 +291,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                 <a key={cat.id} href={path(`/#cat-${cat.slug}`)} onClick={(e) => { e.preventDefault(); setMobileMenuOpen(false); if (isHomePath(location.pathname)) { setTimeout(() => document.getElementById(`cat-${cat.slug}`)?.scrollIntoView({ behavior: 'smooth' }), 100); } else { sessionStorage.setItem("scrollToCategory", `cat-${cat.slug}`); navigate(path("/")); } }} className="flex items-center gap-2 px-3 py-2 pl-8 text-sm rounded" style={{ color: '#ddd' }}><span className="w-1.5 h-1.5 rounded-full bg-orange-400" />{cat.name}</a>
               ))}
               <Link to={path("/about")} onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm rounded" style={{ color: '#fff' }}><Info className="w-4 h-4" />{t("about")}</Link>
-              <Link to={path("/contact")} onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm rounded" style={{ color: '#fff' }}><MessageSquare className="w-4 h-4" />{t("contact")}</Link>
+              <Link to={path("/support")} onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm rounded" style={{ color: '#fff' }}><MessageSquare className="w-4 h-4" />{t("support") || "Support"}</Link>
             </div>
           </div>
         )}
@@ -349,7 +349,7 @@ export default function Layout({ children }: { children: ReactNode }) {
           </div>
           <div>
             <h4 className="font-bold mb-3 text-base">Customer Service</h4>
-            <Link to={path("/contact")} className="block py-1 text-sm" style={{ color: '#ddd' }} onMouseEnter={(e) => (e.currentTarget.style.textDecoration = 'underline')} onMouseLeave={(e) => (e.currentTarget.style.textDecoration = 'none')}>{t("contact")}</Link>
+            <Link to={path("/support")} className="block py-1 text-sm" style={{ color: '#ddd' }} onMouseEnter={(e) => (e.currentTarget.style.textDecoration = 'underline')} onMouseLeave={(e) => (e.currentTarget.style.textDecoration = 'none')}>{t("support") || "Support"}</Link>
           </div>
           <div>
             <h4 className="font-bold mb-3 text-base">Account</h4>
