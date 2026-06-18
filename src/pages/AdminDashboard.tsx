@@ -2428,10 +2428,7 @@ CREATE POLICY "Allow all" ON public.store_links FOR ALL USING (true) WITH CHECK 
       <p className="text-sm text-gray-500">Manage Amazon store links displayed on the Support page. Visitors can click these to jump to your store in different countries.</p>
       <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-gray-100 p-4 space-y-3">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <select value={countryCode} onChange={(e) => setCountryCode(e.target.value)} className="px-3 py-2 border border-gray-200 rounded-lg text-sm">
-            <option value="us">US</option><option value="uk">UK</option><option value="de">DE</option>
-            <option value="es">ES</option><option value="it">IT</option><option value="fr">FR</option>
-          </select>
+          <input placeholder="Country code (e.g. us, ca, jp)" value={countryCode} onChange={(e) => setCountryCode(e.target.value.toLowerCase())} className="px-3 py-2 border border-gray-200 rounded-lg text-sm" required />
           <input placeholder="Label (e.g. US Store)" value={label} onChange={(e) => setLabel(e.target.value)} className="px-3 py-2 border border-gray-200 rounded-lg text-sm" required />
           <input placeholder="URL (e.g. https://amazon.com/...)" value={url} onChange={(e) => setUrl(e.target.value)} className="px-3 py-2 border border-gray-200 rounded-lg text-sm" required />
         </div>
