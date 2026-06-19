@@ -2471,6 +2471,7 @@ function GuidesTab() {
   const [countryCode, setCountryCode] = useState("us");
   const [videoUrl, setVideoUrl] = useState("");
   const [manualUrl, setManualUrl] = useState("");
+  const [language, setLanguage] = useState("");
   const [editId, setEditId] = useState<number | null>(null);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
@@ -2624,7 +2625,7 @@ function GuidesTab() {
       setError("Please select a category."); setSaving(false); return;
     }
     try {
-      const data = { category_id: parseInt(categoryId), product_tag: productTag || null, icon_url: iconUrl || null, country_code: countryCode, title, video_url: videoUrl, manual_url: manualUrl, sort_order: editId ? undefined : items.length };
+      const data = { category_id: parseInt(categoryId), product_tag: productTag || null, icon_url: iconUrl || null, country_code: countryCode, title, video_url: videoUrl, manual_url: manualUrl, language: language || null, sort_order: editId ? undefined : items.length };
       if (editId) {
         const { error: upErr } = await supabase.from("installation_guides").update(data).eq("id", editId);
         if (upErr) throw upErr;
@@ -2632,7 +2633,7 @@ function GuidesTab() {
         const { error: inErr } = await supabase.from("installation_guides").insert(data);
         if (inErr) throw inErr;
       }
-      setTitle(""); setCategoryId(""); setProductTag(""); setIconUrl(""); setCountryCode("us"); setVideoUrl(""); setManualUrl(""); setEditId(null); load();
+      setTitle(""); setCategoryId(""); setProductTag(""); setIconUrl(""); setCountryCode("us"); setLanguage(""); setVideoUrl(""); setManualUrl(""); setEditId(null); load();
     } catch (err: any) { setError(err.message || "Save failed — check RLS policy or table permissions"); }
     setSaving(false);
   };
@@ -2717,7 +2718,10 @@ CREATE POLICY "Allow all" ON public.installation_guides FOR ALL USING (true) WIT
             <option value="">Select Category</option>
             {categories.map((cat) => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
           </select>
-          <input placeholder="Country code (e.g. us, de, es)" value={countryCode} onChange={(e) => setCountryCode(e.target.value.toLowerCase())} className="px-3 py-2 border border-gray-200 rounded-lg text-sm" />
+          <div className="grid grid-cols-2 gap-3">
+            <input placeholder="Country (us, de, es)" value={countryCode} onChange={(e) => setCountryCode(e.target.value.toLowerCase())} className="px-3 py-2 border border-gray-200 rounded-lg text-sm" />
+            <input placeholder="Language (EN, DE, ES) — optional" value={language} onChange={(e) => setLanguage(e.target.value.toUpperCase())} className="px-3 py-2 border border-gray-200 rounded-lg text-sm" />
+          </div>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <input placeholder="Product tag — shared icon across languages" value={productTag} onChange={(e) => setProductTag(e.target.value)} className="px-3 py-2 border border-gray-200 rounded-lg text-sm" />
@@ -2743,7 +2747,7 @@ CREATE POLICY "Allow all" ON public.installation_guides FOR ALL USING (true) WIT
         </div>
         <div className="flex gap-2">
           <button type="submit" disabled={saving} className="px-4 py-2 bg-[#FF9900] text-white rounded-lg text-sm font-medium disabled:opacity-50">{editId ? "Update" : "Add"} Guide</button>
-          {editId && <button type="button" onClick={() => { setEditId(null); setTitle(""); setCategoryId(""); setProductTag(""); setIconUrl(""); setCountryCode("us"); setVideoUrl(""); setManualUrl(""); }} className="px-3 py-2 bg-gray-100 rounded-lg text-sm">Cancel</button>}
+          {editId && <button type="button" onClick={() => { setEditId(null); setTitle(""); setCategoryId(""); setProductTag(""); setIconUrl(""); setCountryCode("us"); setLanguage(""); setVideoUrl(""); setManualUrl(""); }} className="px-3 py-2 bg-gray-100 rounded-lg text-sm">Cancel</button>}
         </div>
       </form>
 
@@ -2789,7 +2793,7 @@ CREATE POLICY "Allow all" ON public.installation_guides FOR ALL USING (true) WIT
                   {tagEntry.guides.map((guide: any, gIdx: number, gArr: any[]) => (
                     <div key={guide.id} className="flex items-center justify-between px-4 py-2.5">
                       <div className="flex items-center gap-2">
-                        <img src={`https://flagcdn.com/w40/${guide.country_code === 'uk' ? 'gb' : guide.country_code}.png`} alt={guide.country_code} className="w-5 h-3.5 object-cover rounded-sm flex-shrink-0" />
+                        <span className="inline-flex items-center justify-center w-7 h-4 rounded text-[9px] font-bold flex-shrink-0 bg-indigo-50 text-indigo-700 border border-indigo-200">{guide.language || guide.country_code?.toUpperCase()}</span>
                         <span className="text-sm text-gray-700">{guide.title || tagEntry.tag}</span>
                         {guide.video_url && <span className="text-xs px-1.5 py-0.5 rounded bg-orange-100 text-orange-700">Video</span>}
                         {guide.manual_url && <span className="text-xs px-1.5 py-0.5 rounded bg-blue-100 text-blue-700">Manual</span>}
@@ -2797,7 +2801,7 @@ CREATE POLICY "Allow all" ON public.installation_guides FOR ALL USING (true) WIT
                       <div className="flex items-center gap-1">
                         <button onClick={() => handleSortItem(guide.id, "up")} disabled={gIdx === 0} className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30"><ArrowUp className="w-3 h-3" /></button>
                         <button onClick={() => handleSortItem(guide.id, "down")} disabled={gIdx === gArr.length - 1} className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30"><ArrowDown className="w-3 h-3" /></button>
-                        <button onClick={() => { setEditId(guide.id); setTitle(guide.title || ""); setCategoryId(String(guide.category_id)); setProductTag(guide.product_tag || ""); setIconUrl(guide.icon_url || ""); setCountryCode(guide.country_code || "us"); setVideoUrl(guide.video_url || ""); setManualUrl(guide.manual_url || ""); }} className="p-1 text-gray-400 hover:text-blue-600"><Pencil className="w-3.5 h-3.5" /></button>
+                        <button onClick={() => { setEditId(guide.id); setTitle(guide.title || ""); setCategoryId(String(guide.category_id)); setProductTag(guide.product_tag || ""); setIconUrl(guide.icon_url || ""); setCountryCode(guide.country_code || "us"); setLanguage(guide.language || ""); setVideoUrl(guide.video_url || ""); setManualUrl(guide.manual_url || ""); }} className="p-1 text-gray-400 hover:text-blue-600"><Pencil className="w-3.5 h-3.5" /></button>
                         <button onClick={() => handleDelete(guide.id)} className="p-1 text-gray-400 hover:text-red-600"><Trash2 className="w-3.5 h-3.5" /></button>
                       </div>
                     </div>

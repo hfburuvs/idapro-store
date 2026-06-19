@@ -33,7 +33,36 @@ interface InstallationGuide {
   sort_order: number;
   is_active: boolean;
   title: string;
+  language: string;
 }
+
+// Country code → language label map (shows language, not country)
+const LANG_MAP: Record<string, string> = {
+  us: "English", uk: "English", ca: "English", au: "English", nz: "English", ie: "English",
+  de: "Deutsch", es: "Español", fr: "Français", it: "Italiano",
+  ja: "日本語", ko: "한국어", zh: "中文", nl: "Nederlands",
+  pt: "Português", pl: "Polski", sv: "Svenska", da: "Dansk",
+  no: "Norsk", fi: "Suomi", ru: "Русский", ar: "العربية",
+  hi: "हिन्दी", th: "ไทย", vi: "Tiếng Việt", tr: "Türkçe",
+  he: "עברית", id: "Bahasa Indonesia", ms: "Bahasa Melayu",
+  cs: "Čeština", el: "Ελληνικά", hu: "Magyar", ro: "Română",
+  sk: "Slovenčina", bg: "Български", hr: "Hrvatski", lt: "Lietuvių",
+  sl: "Slovenščina", et: "Eesti", lv: "Latviešu", mt: "Malti",
+};
+const LANG_CODE_MAP: Record<string, string> = {
+  us: "EN", uk: "EN", ca: "EN", au: "EN", nz: "EN", ie: "EN",
+  de: "DE", es: "ES", fr: "FR", it: "IT",
+  ja: "JA", ko: "KO", zh: "ZH", nl: "NL",
+  pt: "PT", pl: "PL", sv: "SV", da: "DA",
+  no: "NO", fi: "FI", ru: "RU", ar: "AR",
+  hi: "HI", th: "TH", vi: "VI", tr: "TR",
+  he: "HE", id: "ID", ms: "MS",
+  cs: "CS", el: "EL", hu: "HU", ro: "RO",
+  sk: "SK", bg: "BG", hr: "HR", lt: "LT",
+  sl: "SL", et: "ET", lv: "LV", mt: "MT",
+};
+function getLangLabel(code: string) { return LANG_CODE_MAP[code] || code.toUpperCase(); }
+function getLangFullName(code: string) { return LANG_MAP[code] || code.toUpperCase(); }
 
 export default function Support() {
   const { t, country } = useCountry();
@@ -259,11 +288,11 @@ export default function Support() {
                           {product.guides.sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)).map((guide) => (
                             <div key={guide.id} className="flex flex-col sm:flex-row sm:items-center gap-2 px-4 py-3">
                               <div className="flex items-center gap-2 flex-1 min-w-0">
-                                <img
-                                  src={`https://flagcdn.com/w40/${guide.country_code === 'uk' ? 'gb' : guide.country_code}.png`}
-                                  alt={guide.country_code}
-                                  className="w-6 h-4 object-cover rounded-sm flex-shrink-0"
-                                />
+                                <span
+                                  title={getLangFullName(guide.country_code)}
+                                  className="inline-flex items-center justify-center w-8 h-5 rounded text-[10px] font-bold flex-shrink-0"
+                                  style={{ background: '#e0e7ff', color: '#3730a3', border: '1px solid #c7d2fe' }}
+                                >{guide.language || getLangLabel(guide.country_code)}</span>
                                 <span className="text-sm truncate" style={{ color: '#0F1111' }}>{guide.title || product.tag}</span>
                               </div>
                               <div className="flex items-center gap-2 flex-shrink-0">
