@@ -2612,12 +2612,10 @@ function GuidesTab() {
     }).sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)));
   };
 
-  const handleSortItem = (itemId: number, dir: "up" | "down") => {
-    const idx = items.findIndex(i => i.id === itemId);
-    if (idx === -1) return;
-    if (dir === "up" && idx === 0) return;
-    if (dir === "down" && idx === items.length - 1) return;
-    const swapIdx = dir === "up" ? idx - 1 : idx + 1;
+  const handleSortItem = (guideId: number, swapGuideId: number) => {
+    const idx = items.findIndex(i => i.id === guideId);
+    const swapIdx = items.findIndex(i => i.id === swapGuideId);
+    if (idx === -1 || swapIdx === -1) return;
     swapAndSave(prev => {
       const next = [...prev];
       const temp = next[idx].sort_order;
@@ -2815,8 +2813,8 @@ CREATE POLICY "Allow all" ON public.installation_guides FOR ALL USING (true) WIT
                         {guide.manual_url && <span className="text-xs px-1.5 py-0.5 rounded bg-blue-100 text-blue-700">Manual</span>}
                       </div>
                       <div className="flex items-center gap-1">
-                        <button onClick={() => handleSortItem(guide.id, "up")} disabled={gIdx === 0} className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30"><ArrowUp className="w-3 h-3" /></button>
-                        <button onClick={() => handleSortItem(guide.id, "down")} disabled={gIdx === gArr.length - 1} className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30"><ArrowDown className="w-3 h-3" /></button>
+                        <button onClick={() => handleSortItem(guide.id, gArr[gIdx - 1].id)} disabled={gIdx === 0} className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30"><ArrowUp className="w-3 h-3" /></button>
+                        <button onClick={() => handleSortItem(guide.id, gArr[gIdx + 1].id)} disabled={gIdx === gArr.length - 1} className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30"><ArrowDown className="w-3 h-3" /></button>
                         <button onClick={() => { setEditId(guide.id); setTitle(guide.title || ""); setCategoryId(String(guide.category_id)); setProductTag(guide.product_tag || ""); setIconUrl(guide.icon_url || ""); setCountryCode(guide.country_code || "us"); setLanguage(guide.language || ""); setVideoUrl(guide.video_url || ""); setManualUrl(guide.manual_url || ""); }} className="p-1 text-gray-400 hover:text-blue-600"><Pencil className="w-3.5 h-3.5" /></button>
                         <button onClick={() => handleDelete(guide.id)} className="p-1 text-gray-400 hover:text-red-600"><Trash2 className="w-3.5 h-3.5" /></button>
                       </div>
