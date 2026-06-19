@@ -2384,7 +2384,14 @@ function StoreLinksTab() {
         if (inErr) throw inErr;
       }
       setLabel(""); setUrl(""); setCountryCode("us"); setEditId(null); load();
-    } catch (err: any) { setError(err.message || "Save failed — check RLS policy or table permissions"); }
+    } catch (err: any) {
+      const msg = err.message || "";
+      if (msg.includes("language") && msg.includes("column")) {
+        setError('Column "language" not found. Run this SQL in Supabase SQL Editor: ALTER TABLE public.installation_guides ADD COLUMN IF NOT EXISTS language TEXT;');
+      } else {
+        setError(err.message || "Save failed — check RLS policy or table permissions");
+      }
+    }
     setSaving(false);
   };
 
@@ -2505,6 +2512,7 @@ function GuidesTab() {
           icon_url TEXT,
           product_tag TEXT,
           country_code TEXT DEFAULT 'us',
+          language TEXT,
           title TEXT,
           video_url TEXT,
           manual_url TEXT,
@@ -2634,7 +2642,14 @@ function GuidesTab() {
         if (inErr) throw inErr;
       }
       setTitle(""); setCategoryId(""); setProductTag(""); setIconUrl(""); setCountryCode("us"); setLanguage(""); setVideoUrl(""); setManualUrl(""); setEditId(null); load();
-    } catch (err: any) { setError(err.message || "Save failed — check RLS policy or table permissions"); }
+    } catch (err: any) {
+      const msg = err.message || "";
+      if (msg.includes("language") && msg.includes("column")) {
+        setError('Column "language" not found. Run this SQL in Supabase SQL Editor: ALTER TABLE public.installation_guides ADD COLUMN IF NOT EXISTS language TEXT;');
+      } else {
+        setError(err.message || "Save failed — check RLS policy or table permissions");
+      }
+    }
     setSaving(false);
   };
 
@@ -2689,6 +2704,7 @@ function GuidesTab() {
   icon_url TEXT,
   product_tag TEXT,
   country_code TEXT DEFAULT 'us',
+  language TEXT,
   title TEXT,
   video_url TEXT,
   manual_url TEXT,
