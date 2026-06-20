@@ -82,12 +82,6 @@ export default function Support() {
   const toggleCat = (id: number) => setCollapsedCats(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
   const toggleTag = (key: string) => setCollapsedTags(prev => { const n = new Set(prev); n.has(key) ? n.delete(key) : n.add(key); return n; });
 
-  // Collapse state for categories and tags
-  const [collapsedCats, setCollapsedCats] = useState<Set<number>>(new Set());
-  const [collapsedTags, setCollapsedTags] = useState<Set<string>>(new Set());
-  const toggleCat = (id: number) => setCollapsedCats(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
-  const toggleTag = (key: string) => setCollapsedTags(prev => { const n = new Set(prev); n.has(key) ? n.delete(key) : n.add(key); return n; });
-
   // Store links
   const [storeLinks, setStoreLinks] = useState<StoreLink[]>([]);
   // Categories + guides
